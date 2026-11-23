@@ -32,6 +32,7 @@ export function failure(e) {
   return e?.message || "No se pudo completar. Volvé a intentarlo.";
 }
 export function media(w) {
+  if (!["image", "audio", "video"].includes(w.type)) return "";
   if (w.type === "image")
     return `<img class="piece-image" src="${esc(w.url)}" alt="${esc(w.title)}" loading="lazy" decoding="async">`;
   return `<${w.type} controls preload="none" ${w.type === "video" ? "playsinline" : ""} src="${esc(w.url)}" aria-label="${esc(w.title)}"></${w.type}>`;

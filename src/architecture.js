@@ -1,6 +1,7 @@
 import * as T from "three";
 import { RoomEnvironment } from "three/examples/jsm/environments/RoomEnvironment.js";
 import { art } from "./catalog.js";
+import { readBounded } from "./formats.js";
 
 function sculpture(room) {
   if (room.id === "frecuencia")
@@ -42,7 +43,7 @@ function sculpture(room) {
   g.computeVertexNormals();
   return g;
 }
-function surfaceTexture(wood) {
+export function surfaceTexture(wood) {
   const c = document.createElement("canvas");
   c.width = c.height = 256;
   const ctx = c.getContext("2d"),
@@ -284,7 +285,9 @@ export function furnish(scene, renderer, r, isLive, invalidate) {
     [5.6, 8.67, Math.PI],
   ];
   const works = r.works.filter((w) => w.ready !== false).slice(0, 8);
-  const targets = [];
+  const targets = [],
+    models = [],
+    loading = new AbortController();
   works.forEach((w, i) => {
     const [x, z, yaw] = spots[w.slot ? w.slot - 1 : i],
       group = new T.Group();
@@ -360,14 +363,44 @@ export function furnish(scene, renderer, r, isLive, invalidate) {
       install(new T.CanvasTexture(c));
     };
     if (w.type === "image") loader.load(w.url, install, undefined, placard);
-    else placard();
+    else {
+      placard();
+      if (w.type === "model") models.push({ group, work: w, started: false });
+    }
     targets.push({ group, frame, work: w });
   });
   return {
     blocks,
     targets,
     portal: new T.Vector3(5.55, 1.4, -8.35),
+    approach(position) {
+      for (const m of models)
+        if (!m.started && m.group.position.distanceToSquared(position) < 26) {
+          m.started = true;
+          void Promise.all([
+            import("./model-view.js"),
+            readBounded(m.work.url, 2340008, loading.signal),
+          ])
+            .then(([module, data]) => {
+              if (!isLive()) return;
+              const item = new T.Mesh(
+                module.geometryFrom(data),
+                new T.MeshStandardMaterial({
+                  vertexColors: true,
+                  roughness: 0.65,
+                  side: T.DoubleSide,
+                }),
+              );
+              item.scale.setScalar(0.82);
+              item.position.z = 1.12;
+              m.group.add(item);
+              invalidate();
+            })
+            .catch(() => {});
+        }
+    },
     dispose: () => {
+      loading.abort();
       target.dispose();
       tiles.dispose();
       const geo = new Set(),

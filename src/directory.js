@@ -1,5 +1,6 @@
 import { exhibits } from "./catalog.js";
 import { rooms } from "./backend.js";
+import { patio } from "./patio.js";
 import { $, panel, esc, dialog } from "./ui.js";
 import { icon } from "./icons.js";
 export function directory(current) {
@@ -18,7 +19,7 @@ export function directory(current) {
         `<a data-nav class="destination" href="?sala=${encodeURIComponent(r.id)}&amp;modo=3d"><span>${esc(r.title)}<small>${esc(r.artist)}</small></span>${icon("arrow", 16)}</a>`,
       );
   };
-  exhibits.forEach(append);
+  [patio, ...exhibits].forEach(append);
   async function load() {
     more.hidden = true;
     status.textContent = "Buscando salas de artistas…";

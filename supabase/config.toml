@@ -8,3 +8,6 @@ enable_confirmations = true
 
 [functions.gallery-passkeys]
 verify_jwt = false
+
+[functions.gallery-voice]
+verify_jwt = false

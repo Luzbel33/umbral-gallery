@@ -74,6 +74,10 @@ export const categories = [
   "Video",
   "Pintura",
   "Digital",
+  "Programación",
+  "Diseño",
+  "Literatura",
+  "Multidisciplinaria",
 ];
 export const pathFor = (w) => w.room_id + "/" + w.id + "." + w.extension;
 export function adaptRoom(r, storage) {
@@ -81,12 +85,7 @@ export function adaptRoom(r, storage) {
     .sort((a, b) => a.slot - b.slot)
     .map((w) => ({
       ...w,
-      type:
-        w.extension === "webp"
-          ? "image"
-          : ["mp4", "webm"].includes(w.extension)
-            ? "video"
-            : "audio",
+      type: workType(w.extension),
       url: storage.getPublicUrl(pathFor(w)).data.publicUrl,
     }));
   const ready = works.filter((w) => w.ready);
@@ -98,3 +97,4 @@ export function adaptRoom(r, storage) {
       ?.url,
   };
 }
+import { workType } from "./formats.js";

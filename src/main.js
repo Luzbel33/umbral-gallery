@@ -1,8 +1,12 @@
 import "@fontsource-variable/space-grotesk";
 import "@fontsource/barlow-condensed/latin-600.css";
 import "./style.css";
+import "./community.css";
 import { exhibits, categories } from "./catalog.js";
 import { icon, categoryIcon } from "./icons.js";
+import { safeLink, typeLabels } from "./formats.js";
+import { openPiece } from "./viewers.js";
+import { patio, showPatio } from "./patio.js";
 import {
   $,
   dialog,
@@ -55,7 +59,77 @@ function navigate(url) {
   history.pushState({}, "", url);
   void route();
 }
-function storeSaved(id) {
+let favoriteOwner = null,
+  favoriteRequest = Promise.resolve(true);
+const favoriteBusy = new Set();
+function loadFavorites(account) {
+  const id = account?.id || null;
+  if (id === favoriteOwner) return;
+  favoriteOwner = id;
+  if (!id) {
+    try {
+      saved = JSON.parse(localStorage.getItem("umbral:guardadas") || "[]");
+    } catch {
+      saved = [];
+    }
+    paintSaved();
+    return;
+  }
+  saved = [];
+  paintSaved();
+  favoriteRequest = new Promise((resolve) => setTimeout(resolve, 0)).then(
+    async () => {
+      try {
+        const { client } = await backend();
+        const { data, error } = await client
+          .from("gallery_favorites")
+          .select("room_key")
+          .eq("user_id", id);
+        if (error) throw error;
+        if (id === favoriteOwner) {
+          saved = data.map((r) => r.room_key);
+          paintSaved();
+        }
+        return true;
+      } catch {
+        if (id === favoriteOwner) toast("No se pudieron cargar tus favoritos.");
+        return false;
+      }
+    },
+  );
+}
+async function storeSaved(id) {
+  if (favoriteBusy.has(id)) return;
+  if (user) {
+    const owner = user.id;
+    favoriteBusy.add(id);
+    try {
+      if (!(await favoriteRequest)) {
+        favoriteOwner = null;
+        loadFavorites(user);
+        if (!(await favoriteRequest))
+          throw Error("Reintentá cuando se restablezca la conexión.");
+      }
+      if (user?.id !== owner) return;
+      const active = !saved.includes(id),
+        { client } = await backend();
+      const { error } = await client.rpc("set_gallery_favorite", {
+        room_key: id,
+        saved: active,
+      });
+      if (error) throw error;
+      if (user?.id !== owner) return;
+      saved = active
+        ? [...new Set([...saved, id])]
+        : saved.filter((x) => x !== id);
+      paintSaved();
+    } catch (e) {
+      toast(failure(e));
+    } finally {
+      favoriteBusy.delete(id);
+    }
+    return;
+  }
   if (saved.includes(id)) saved = saved.filter((x) => x !== id);
   else {
     if (saved.length >= 100) {
@@ -69,6 +143,9 @@ function storeSaved(id) {
   } catch {
     toast("El navegador no pudo guardar la selección.");
   }
+  paintSaved();
+}
+function paintSaved() {
   document.querySelectorAll("[data-save]").forEach((b) => {
     const active = saved.includes(b.dataset.save);
     b.classList.toggle("selected", active);
@@ -157,6 +234,24 @@ function detail(r) {
   const works = r.works.filter((w) => w.ready !== false);
   $("#main").innerHTML =
     `<a data-nav href="./" class="crumb">${icon("back", 16)} Explorar salas</a><section class="detail"><div class="detail-cover">${r.cover ? `<img src="${esc(r.cover)}" alt="${esc(r.title)}">` : fallback(r)}</div><div class="detail-copy"><p class="kicker"><i></i> ${esc(r.category.toUpperCase())}</p><h1>${esc(r.title)}</h1><p class="by">${esc(r.artist)}</p><p>${esc(r.description)}</p><div class="row"><a data-nav href="${href(r.id, true)}" class="primary">${icon("box")} Recorrer en 3D</a>${bookmark(r)}<button class="round" data-share aria-label="Copiar enlace a la sala">${icon("copy")}</button></div></div></section><section class="works"><h2>Obras en sala</h2><div class="pieces">${works.map((w, i) => `<article><div class="piece">${w.type === "image" ? `<button class="image-open" aria-label="Ampliar ${esc(w.title)}" data-piece="${i}">${media(w)}</button>` : media(w)}</div><h3>${esc(w.title)}</h3></article>`).join("") || "<p>El artista todavía está preparando sus obras.</p>"}</div></section>`;
+  const links = [
+    ["Sitio web", r.website],
+    ["Red social", r.social_url],
+    ["Proyecto o demo", r.project_url],
+  ].filter(([, url]) => safeLink(url));
+  if (links.length)
+    $(".detail-copy").insertAdjacentHTML(
+      "beforeend",
+      `<div class="profile-links">${links.map(([label, url]) => `<a href="${esc(safeLink(url))}" rel="noopener noreferrer ugc" target="_blank">${esc(label)} ${icon("external", 13)}</a>`).join("")}</div>`,
+    );
+  const pieces = $(".pieces");
+  Array.from(pieces.children).forEach((article, i) => {
+    const w = works[i];
+    if (w && !["image", "audio", "video"].includes(w.type)) {
+      $(".piece", article).innerHTML =
+        `<button class="file-tile" data-piece="${i}">${icon(w.type === "model" ? "box" : w.type === "source" ? "layers" : "grid", 32)}<span>Abrir ${esc(typeLabels[w.type])}</span><small>${esc(w.source_name)}</small></button>`;
+    }
+  });
 }
 async function route() {
   const ticket = ++version;
@@ -170,7 +265,8 @@ async function route() {
   const p = params(),
     id = p.get("sala"),
     savedView = p.get("vista") === "guardadas";
-  $("#explore-link").classList.toggle("current", !savedView);
+  $("#explore-link").classList.toggle("current", !savedView && id !== "patio");
+  $("#patio-link").classList.toggle("current", id === "patio");
   $("#saved-link").classList.toggle("current", savedView);
   document.title = "Umbral — Galería de arte virtual";
   if (!id) {
@@ -186,6 +282,7 @@ async function route() {
     $("#main").innerHTML = '<p class="loading">Abriendo sala…</p>';
     try {
       const r =
+        (id === "patio" ? patio : null) ||
         exhibits.find((r) => r.id === id) ||
         (uuid.test(id) ? await (await backend()).readRoom(id) : null);
       if (ticket !== version) return;
@@ -198,9 +295,17 @@ async function route() {
         if (ticket !== version) return;
         walk = enterWalk(r, {
           exit: () => navigate(href(id)),
-          openPiece: (w) => panel(w.title, media(w), "viewer"),
+          openPiece,
+          login: () => auth("login"),
         });
-      } else detail(r);
+      } else if (id === "patio")
+        walk = await showPatio(
+          () => navigate(href("patio", true)),
+          () => auth("login"),
+          () => user,
+          () => ticket === version,
+        );
+      else detail(r);
     } catch (e) {
       if (ticket === version)
         $("#main").innerHTML =
@@ -211,7 +316,8 @@ async function route() {
 }
 function accountUI() {
   $("#signin").textContent = user ? "Salir" : "Ingresar";
-  $("#studio-label").textContent = user ? "Mi sala" : "Crear sala";
+  $("#studio-label").textContent = user ? "Mi espacio" : "Registrarme";
+  loadFavorites(user);
 }
 async function showStudio() {
   try {
@@ -230,8 +336,8 @@ async function showStudio() {
 function auth(mode) {
   const reg = mode === "register";
   panel(
-    reg ? "Creá tu sala" : "Ingresá a Umbral",
-    `<form id="auth-form"><p>${reg ? "Registrate con una llave de acceso para publicar tus obras. Elegí una llave sincronizada para entrar también desde otro dispositivo." : "Usá la llave de acceso que guardaste al crear tu sala."}</p>${reg ? '<label>Nombre de artista<input name="label" required maxlength="48" autocomplete="nickname" placeholder="Tu nombre o seudónimo"></label>' : ""}<p role="status" class="form-status"></p><button class="primary" type="submit">${icon("user")} ${reg ? "Registrar llave de acceso" : "Ingresar con mi llave"}</button></form><button class="text-btn switch">${reg ? "Ya tengo una cuenta" : "Crear una cuenta"}</button>`,
+    reg ? "Creá tu cuenta" : "Ingresá a Umbral",
+    `<form id="auth-form"><p>${reg ? "Guardá favoritos y conversá en el patio con una llave de acceso. Podés crear una sala cuando quieras. Elegí una llave sincronizada para usarla en otros dispositivos." : "Usá la llave de acceso que guardaste al registrarte."}</p>${reg ? '<label>Nombre público<input name="label" required maxlength="48" autocomplete="nickname" placeholder="Tu nombre o seudónimo"></label>' : ""}<p role="status" class="form-status"></p><button class="primary" type="submit">${icon("user")} ${reg ? "Registrar llave de acceso" : "Ingresar con mi llave"}</button></form><button class="text-btn switch">${reg ? "Ya tengo una cuenta" : "Crear una cuenta"}</button>`,
   );
   $(".switch").onclick = () => auth(reg ? "login" : "register");
   $("#auth-form").onsubmit = async (e) => {
@@ -246,7 +352,12 @@ function auth(mode) {
       user = await pass.authenticate(mode, new FormData(form).get("label"));
       accountUI();
       if (dialog.open) dialog.close();
-      await showStudio();
+      toast(
+        reg
+          ? "Tu cuenta está lista. Podés guardar salas o abrir tu propio espacio."
+          : "Ya ingresaste a Umbral.",
+      );
+      void route();
     } catch (err) {
       status.textContent = failure(err);
     } finally {
@@ -320,7 +431,7 @@ document.addEventListener("click", async (e) => {
     const w = current.works.filter((w) => w.ready !== false)[
       Number(n.dataset.piece)
     ];
-    panel(w.title, media(w), "viewer");
+    void openPiece(w);
   }
 });
 window.addEventListener("popstate", route);

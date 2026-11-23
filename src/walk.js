@@ -1,9 +1,10 @@
 import * as T from "three";
 import { furnish } from "./architecture.js";
+import { courtyard } from "./courtyard.js";
 import { icon } from "./icons.js";
 import { $, esc, dialog, panel, toast, failure } from "./ui.js";
 import "./walk.css";
-export function enterWalk(room, { exit, openPiece }) {
+export function enterWalk(room, { exit, openPiece, login }) {
   const main = $("#main");
   const renderer = new T.WebGLRenderer({
     antialias: true,
@@ -61,7 +62,10 @@ export function enterWalk(room, { exit, openPiece }) {
   };
   const drawnPosition = new T.Vector3(),
     drawnRotation = new T.Quaternion();
-  const world = furnish(scene, renderer, room, () => live, invalidate),
+  const world =
+      room.id === "patio"
+        ? courtyard(scene, renderer, invalidate)
+        : furnish(scene, renderer, room, () => live, invalidate),
     keys = new Set(),
     ray = new T.Raycaster(),
     point = new T.Vector2();
@@ -79,6 +83,20 @@ export function enterWalk(room, { exit, openPiece }) {
     }
   };
   doors.onclick = changeRoom;
+  const chat = document.createElement("button");
+  chat.className = "hud-btn";
+  chat.textContent = "Charla";
+  chat.hidden = true;
+  $("#help").before(chat);
+  chat.onclick = () => {
+    if (!social) return;
+    panel(
+      "Conversación del grupo",
+      '<div class="conversation" id="walk-chat"></div>',
+    );
+    social.mount($("#walk-chat"), login);
+    dialog.addEventListener("close", () => social?.unmount(), { once: true });
+  };
   let atDoor = false;
   const resize = () => {
     renderer.setSize(view.clientWidth, view.clientHeight, false);
@@ -182,6 +200,7 @@ export function enterWalk(room, { exit, openPiece }) {
     if (social) {
       social.dispose();
       social = null;
+      chat.hidden = true;
       invalidate();
       b.setAttribute("aria-pressed", "false");
       $("span", b).textContent = "Caminar en compañía";
@@ -204,6 +223,7 @@ export function enterWalk(room, { exit, openPiece }) {
         },
         () => {
           social = null;
+          chat.hidden = true;
           invalidate();
           if (live) {
             b.setAttribute("aria-pressed", "false");
@@ -212,7 +232,10 @@ export function enterWalk(room, { exit, openPiece }) {
         },
       );
       if (!live) session.dispose();
-      else social = session;
+      else {
+        social = session;
+        chat.hidden = false;
+      }
     } catch (e) {
       b.setAttribute("aria-pressed", "false");
       $("span", b).textContent = "Caminar en compañía";
@@ -264,6 +287,7 @@ export function enterWalk(room, { exit, openPiece }) {
         z = p.z + (-f * Math.cos(a) - s * Math.sin(a)) * speed;
       if (canMove(x, p.z)) p.x = x;
       if (canMove(p.x, z)) p.z = z;
+      world.approach?.(p);
       near = world.targets.find((t) => t.group.position.distanceTo(p) < 3.8);
       const closeToDoor = world.portal.distanceTo(p) < 2.4;
       if (closeToDoor !== atDoor) {

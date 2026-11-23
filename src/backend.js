@@ -1,26 +1,29 @@
 import { createClient } from "@supabase/supabase-js";
 import { projectUrl, publicKey } from "./config.js";
 import { adaptRoom, pathFor } from "./catalog.js";
+import { models, codeExtensions, suffix } from "./formats.js";
 export const client = createClient(projectUrl, publicKey);
 const bucket = client.storage.from("gallery-art");
 const fields =
-  "id,title,artist,description,category,wall_color,finish,music_slot,published,created_at,works(id,room_id,slot,title,extension,ready)";
+  "id,title,artist,description,category,wall_color,finish,music_slot,website,social_url,project_url,published,created_at,works(id,room_id,slot,title,extension,ready,source_name)";
 const unwrap = ({ data, error }) => {
   if (error) throw error;
   return data;
 };
 export async function rooms({ category, ids, offset = 0, limit = 12 } = {}) {
   let q = client
-    .from("rooms")
-    .select(fields)
-    .eq("published", true)
+    .from("gallery_catalog")
+    .select("id,title,artist,category,wall_color,cover_id")
     .order("created_at", { ascending: false })
     .order("id");
   if (category) q = q.eq("category", category);
   if (ids) q = q.in("id", ids);
-  return unwrap(await q.range(offset, offset + limit - 1)).map((r) =>
-    adaptRoom(r, bucket),
-  );
+  return unwrap(await q.range(offset, offset + limit - 1)).map((r) => ({
+    ...r,
+    cover: r.cover_id
+      ? bucket.getPublicUrl(r.id + "/" + r.cover_id + ".webp").data.publicUrl
+      : null,
+  }));
 }
 export async function readRoom(id) {
   const row = unwrap(
@@ -51,7 +54,56 @@ const mediaTypes = {
 async function prepare(file) {
   if (file.size > 12 * 1024 * 1024)
     throw Error("El máximo es 12 MB por archivo.");
-  if (["image/jpeg", "image/png", "image/webp"].includes(file.type)) {
+  const ext = suffix(file.name);
+  if (models.includes(ext)) {
+    const { convertMesh } = await import("./mesh.js");
+    return {
+      blob: await convertMesh(file, ext),
+      extension: "mesh",
+      mime: "application/octet-stream",
+    };
+  }
+  if (codeExtensions.includes(ext)) {
+    if (file.size > 524288)
+      throw Error("El máximo para código y texto es de 512 KiB.");
+    const bytes = new Uint8Array(await file.arrayBuffer());
+    if (bytes.includes(0)) throw Error("Elegí un archivo de texto UTF-8.");
+    try {
+      new TextDecoder("utf-8", { fatal: true }).decode(bytes);
+    } catch {
+      throw Error("Guardá el texto en UTF-8.");
+    }
+    return { blob: file, extension: "txt", mime: "text/plain" };
+  }
+  if (ext === "pdf") {
+    if (!(await file.slice(0, 5).text()).startsWith("%PDF-"))
+      throw Error("El archivo no tiene cabecera PDF.");
+    return { blob: file, extension: "pdf", mime: "application/pdf" };
+  }
+  const other = {
+    flac: ["flac", "audio/flac"],
+    opus: ["ogg", "audio/ogg"],
+    ogg: ["ogg", "audio/ogg"],
+    wav: ["wav", "audio/wav"],
+    mp3: ["mp3", "audio/mpeg"],
+    m4a: ["m4a", "audio/mp4"],
+    mp4: ["mp4", "video/mp4"],
+    webm: ["webm", "video/webm"],
+    ogv: ["ogv", "video/ogg"],
+    mov: ["mov", "video/quicktime"],
+  }[ext];
+  if (other) return { blob: file, extension: other[0], mime: other[1] };
+  if (
+    ["jpg", "jpeg", "png", "webp", "avif", "gif", "bmp"].includes(ext) ||
+    [
+      "image/jpeg",
+      "image/png",
+      "image/webp",
+      "image/avif",
+      "image/gif",
+      "image/bmp",
+    ].includes(file.type)
+  ) {
     const bitmap = await createImageBitmap(file);
     try {
       const s = Math.min(1, 1920 / Math.max(bitmap.width, bitmap.height));
@@ -74,7 +126,7 @@ async function prepare(file) {
   const extension = mediaTypes[file.type];
   if (!extension)
     throw Error(
-      "Elegí una imagen JPG, PNG o WebP, video MP4 o WebM, o audio MP3, Ogg, WAV o M4A.",
+      "Este formato todavía no tiene un visor. Consultá la lista de formatos.",
     );
   const mime =
     extension === "wav"
@@ -96,11 +148,12 @@ export async function uploadWork(room, file, title) {
     slot,
     title,
     extension,
+    source_name: file.name.slice(-120),
   };
   unwrap(await client.from("works").insert(w));
   try {
     unwrap(
-      await bucket.upload(pathFor(w), blob, {
+      await bucket.upload(pathFor(w), blob.slice(0, blob.size, mime), {
         contentType: mime,
         cacheControl: "31536000",
       }),

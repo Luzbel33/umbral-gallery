@@ -1,0 +1,248 @@
+.space-actions,
+.studio-tabs,
+.profile-links,
+.voice-controls {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin: 14px 0;
+}
+.studio-tabs {
+  border-bottom: 1px solid var(--line);
+  padding-bottom: 12px;
+}
+.studio-section {
+  margin-top: 0;
+  padding-top: 0;
+  border: 0;
+}
+.studio-links label {
+  margin-top: 9px;
+}
+dialog details {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 10px 12px;
+}
+dialog summary {
+  cursor: pointer;
+  font-size: 14px;
+}
+dialog details p {
+  margin: 9px 0;
+}
+.profile-links a {
+  font-size: 13px;
+  color: var(--lime);
+  padding: 7px 0;
+}
+.file-tile {
+  width: 100%;
+  height: 100%;
+  display: grid;
+  align-content: center;
+  justify-items: center;
+  gap: 8px;
+  background: var(--surface);
+  color: var(--lime);
+}
+.file-tile small,
+.conversation small {
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.4;
+}
+.file-view pre,
+.table-scroll {
+  max-height: 61vh;
+  overflow: auto;
+  background: #10120f;
+  padding: 14px;
+  border-radius: 8px;
+  tab-size: 4;
+}
+.file-view pre {
+  font:
+    14px/1.55 Consolas,
+    monospace;
+}
+.file-view table {
+  border-collapse: collapse;
+  font-size: 13px;
+}
+.file-view td,
+.file-view th {
+  padding: 6px 12px;
+  border: 1px solid var(--line);
+  text-align: left;
+}
+.file-view canvas {
+  max-width: 100%;
+  height: auto;
+  margin: auto;
+  display: block;
+}
+.file-view canvas.model-canvas {
+  width: 100%;
+  height: min(60vh, 470px);
+  touch-action: none;
+}
+.pdf-bar,
+.chat-form,
+.conversation-heading {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  justify-content: space-between;
+}
+.pdf-bar {
+  margin-bottom: 12px;
+}
+.patio-layout {
+  padding-bottom: 40px;
+  display: grid;
+  grid-template-columns: 1.15fr 1fr;
+  gap: 20px;
+  align-items: stretch;
+}
+.patio-cover {
+  position: relative;
+  min-height: 420px;
+  overflow: hidden;
+  border-radius: 12px;
+  background: #3e4236;
+}
+.patio-cover:after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(transparent 20%, #15180fdc 100%);
+}
+.patio-cover img {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.patio-cover > div {
+  position: absolute;
+  bottom: 26px;
+  left: 26px;
+  right: 20px;
+  z-index: 1;
+}
+.patio-cover h1 {
+  font: 600 clamp(55px, 6vw, 96px) / 1 var(--display);
+  letter-spacing: -0.035em;
+  margin: 7px 0 17px;
+}
+.patio-cover h1 span {
+  color: var(--lime);
+}
+.conversation {
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: #1a1c18;
+  padding: clamp(16px, 2vw, 28px);
+  min-width: 0;
+  align-content: center;
+}
+.conversation h2,
+.conversation h3 {
+  font-size: clamp(22px, 2.4vw, 32px);
+  letter-spacing: -0.045em;
+}
+.conversation p {
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--muted);
+  margin: 10px 0;
+}
+.conversation-heading {
+  align-items: baseline;
+}
+.conversation-heading span {
+  font-size: 12px;
+  color: var(--muted);
+}
+.chat-log {
+  height: clamp(140px, 23vh, 280px);
+  overflow: auto;
+  padding: 10px 0;
+  margin: 8px 0;
+  border-block: 1px solid var(--line);
+  font-size: 13px;
+  color: var(--muted);
+  overflow-wrap: anywhere;
+}
+.chat-log p {
+  margin: 5px 0;
+  color: var(--text);
+}
+.chat-log strong {
+  color: var(--lime);
+  margin-right: 8px;
+}
+.chat-form input {
+  min-width: 0;
+}
+.speak {
+  touch-action: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+}
+.speak.transmitting {
+  background: var(--lime);
+  color: #121611;
+}
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+}
+#walk-chat {
+  border: 0;
+  padding: 0;
+}
+@media (max-width: 740px) {
+  .patio-layout {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+  .patio-cover {
+    min-height: 235px;
+  }
+  .patio-cover > div {
+    left: 18px;
+    bottom: 17px;
+  }
+  .studio-tabs .chip,
+  .hud-btn,
+  .plain,
+  .primary.small,
+  .card > .bookmark,
+  .round {
+    min-height: 44px;
+  }
+  .card > .bookmark,
+  .round {
+    min-width: 44px;
+  }
+  .top-inner nav {
+    height: 44px;
+  }
+  .chat-form .primary {
+    min-height: 44px;
+  }
+  .voice-controls button {
+    min-height: 44px;
+  }
+  .panel-heading .round {
+    min-width: 44px;
+    min-height: 44px;
+  }
+}
