@@ -20,3 +20,6 @@ verify_jwt = false
 
 [functions.gallery-account]
 verify_jwt = false
+
+[functions.gallery-media]
+verify_jwt = false

@@ -200,9 +200,10 @@ export function adaptRoom(r, objectUrl) {
     .sort((a, b) => a.slot - b.slot)
     .map((w) => ({
       ...w,
-      preview: w.has_preview ? objectUrl(previewPath(w)) : null,
+      preview:
+        w.preview_url || (w.has_preview ? objectUrl(previewPath(w)) : null),
       type: workType(w.extension),
-      url: w.external_url || objectUrl(pathFor(w)),
+      url: w.external_url || w.cloud_url || objectUrl(pathFor(w)),
     }));
   const ready = works.filter((w) => w.ready);
   const coverWork = ready.find((w) => w.type === "image");

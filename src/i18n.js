@@ -1,6 +1,15 @@
 // Spanish source messages also identify errors returned by the gallery's existing APIs.
 const english = {
   "Otras redes sociales": "Additional social profiles",
+  "Cada sala tiene 48 MiB propios entre obras y miniaturas. Cada archivo admite hasta 32 MiB. Los PDF usan el espacio para documentos que ves al elegir el archivo.":
+    "Each room has its own 48 MiB for works and previews. Each file can use up to 32 MiB. PDFs use the document storage shown when you select a file.",
+  "Espacio para documentos": "Document storage",
+  "El archivo supera el espacio disponible en el almacenamiento de documentos.":
+    "This file exceeds the available document storage.",
+  "Hay otra operación en curso sobre esta obra. Volvé a intentar en un momento.":
+    "Another operation is in progress for this work. Try again shortly.",
+  "No se completó la transferencia de la obra. Volvé a intentar.":
+    "The file transfer did not finish. Please try again.",
   "Cómo se calcula el espacio": "How storage works",
   "Cada artista tiene 6 MiB reservados. Podés llegar a 48 MiB por sala usando la bolsa compartida de 200 MiB. El máximo por archivo listo es 32 MiB. Los enlaces no gastan espacio de archivos.":
     "Each artist has 6 MiB reserved. A room can grow to 48 MiB using the shared 200 MiB pool. Each finished upload can be up to 32 MiB. Media links use none of your file storage.",

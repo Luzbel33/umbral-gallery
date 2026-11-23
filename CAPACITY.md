@@ -4,9 +4,11 @@ The global social limit is **120 visitors in groups of six**. Individual browsin
 
 ## Artist storage
 
-The pilot has 100 artist rooms, four works per room and eight possible installation positions. Each artist has 6 MiB reserved. A further 200 MiB shared pool brings the overall Storage ceiling to 800 MiB. Each room can grow to 48 MiB, with at most 32 MiB per finished upload. Image previews count toward storage. An externally hosted media link uses one artwork place and no file storage.
+The pilot has 100 artist rooms, four works per room and eight possible installation positions. The original Supabase bucket reserves 6 MiB per artist. A further 200 MiB shared pool brings the overall Storage ceiling to 800 MiB. Each room can grow to 48 MiB, with at most 32 MiB per finished upload. Image previews count toward storage. An externally hosted media link uses one artwork place and no file storage.
 
 The isolated database accepted room 100 and denied room 101. Once the shared pool was full, another room could still use its 6 MiB reserve. Two simultaneous 25 MiB uploads to the same room left one stored file and 23 MiB available. Chrome prepared a 4,608,078-byte WAV as 389,411 bytes and a 9,216,746-byte MP4 as 812,311 bytes. Results vary with source content and browser codecs. The artist sees the prepared size before confirming.
+
+With Cloudinary enabled the 100 rooms can each reserve 48 MiB of media, for a combined 4,800 MiB (4.6875 GiB). The isolated database test fills each room and rejects its next byte. PDFs and legacy files use the original storage pool and count towards the room total. Media playback uses Cloudinary bandwidth.
 
 ## Isolated load test
 

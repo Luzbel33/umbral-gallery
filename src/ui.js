@@ -33,6 +33,13 @@ export function failure(e) {
     return t("Se canceló la llave de acceso. Podés volver a intentarlo.");
   const message = String(e?.message || "");
   const limits = {
+    MEDIA_BUSY:
+      "Hay otra operación en curso sobre esta obra. Volvé a intentar en un momento.",
+    MEDIA_UNAVAILABLE:
+      "No se completó la transferencia de la obra. Volvé a intentar.",
+    MEDIA_ACCOUNT: "Ingresá para editar tu sala.",
+    DOCUMENT_BYTES_FULL:
+      "El archivo supera el espacio disponible en el almacenamiento de documentos.",
     PILOT_ARTISTS_FULL:
       "Las 100 salas del piloto ya tienen artista. Podés seguir visitando y guardando favoritos.",
     PILOT_WORKS_FULL:

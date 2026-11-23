@@ -7,14 +7,16 @@ export const objectUrl = (path) =>
 export function summary(row) {
   return {
     ...row,
-    cover: row.cover_id
-      ? objectUrl(
-          row.id +
-            "/" +
-            row.cover_id +
-            (row.cover_preview ? ".preview.webp" : ".webp"),
-        )
-      : null,
+    cover:
+      row.cover_url ||
+      (row.cover_id
+        ? objectUrl(
+            row.id +
+              "/" +
+              row.cover_id +
+              (row.cover_preview ? ".preview.webp" : ".webp"),
+          )
+        : null),
   };
 }
 export async function readPublicJSON(url) {

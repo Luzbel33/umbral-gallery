@@ -7,6 +7,7 @@ import {
   deleteWork,
   saveWork,
 } from "./backend.js";
+import { usesCloudFile } from "./cloud-media.js";
 import { mediaLink } from "./media-link.js";
 import { mountEditor } from "./mount-editor.js";
 import { positionName } from "./installation.js";
@@ -90,7 +91,7 @@ export async function openStudio(user, refresh, navigate, demo = false) {
       )}<details class="extra-social" ${room.social_url_2 || room.social_url_3 ? "open" : ""}><summary>${t("Otras redes sociales")}</summary>${[2, 3].map((n) => `<label>${t("Red social")} ${n}<input type="url" name="social_url_${n}" maxlength="420" placeholder="https://…" value="${esc(room["social_url_" + n])}"></label>`).join("")}</details></fieldset>
     <label class="checkline" ${demo ? "hidden" : ""}><input type="checkbox" name="published" ${room.published ? "checked" : ""}> ${t("Mostrar mi sala en el catálogo público")}</label>
     <div class="row"><button class="primary" type="submit">${t("Guardar sala")}</button><button class="secondary" type="button" id="preview-room">${t("Guardar y recorrer en 3D")} ${icon("external", 15)}</button></div><p class="form-status" role="status"></p>${demo ? "" : `<button type="button" id="release-room" class="text-btn" hidden>${t("Eliminar mi sala vacía y liberar el cupo")}</button>`}</form>
-    <section class="studio-section"><h3>${t("Obras")} <span id="quota"></span></h3><p class="usage" id="storage-usage"></p><details class="budget-help"><summary>${t("Cómo se calcula el espacio")}</summary><p>${t("Cada artista tiene 6 MiB reservados. Podés llegar a 48 MiB por sala usando la bolsa compartida de 200 MiB. El máximo por archivo listo es 32 MiB. Los enlaces no gastan espacio de archivos.")}</p></details><p>${t("Elegí una obra para editar su título, su cartela y su lugar en la sala.")}</p><div class="row add-art"><button type="button" class="secondary" data-jump="upload-form">${icon("upload", 16)} ${t("Subir un archivo")}</button><button type="button" class="secondary" data-jump="link-form">${icon("external", 16)} ${t("Usar un enlace")}</button></div><div id="work-list"></div><div id="mount-editor"></div>
+    <section class="studio-section"><h3>${t("Obras")} <span id="quota"></span></h3><p class="usage" id="storage-usage"></p><details class="budget-help"><summary>${t("Cómo se calcula el espacio")}</summary><p>${t(demo || room.cloud ? "Cada sala tiene 48 MiB propios entre obras y miniaturas. Cada archivo admite hasta 32 MiB. Los PDF usan el espacio para documentos que ves al elegir el archivo." : "Cada artista tiene 6 MiB reservados. Podés llegar a 48 MiB por sala usando la bolsa compartida de 200 MiB. El máximo por archivo listo es 32 MiB. Los enlaces no gastan espacio de archivos.")}</p></details><p>${t("Elegí una obra para editar su título, su cartela y su lugar en la sala.")}</p><div class="row add-art"><button type="button" class="secondary" data-jump="upload-form">${icon("upload", 16)} ${t("Subir un archivo")}</button><button type="button" class="secondary" data-jump="link-form">${icon("external", 16)} ${t("Usar un enlace")}</button></div><div id="work-list"></div><div id="mount-editor"></div>
     <form id="upload-form"><h3>${t("Subir un archivo")}</h3><p>${t("Cada archivo o enlace ocupa uno de los cuatro lugares. Las miniaturas se incluyen en el espacio usado.")}</p>
     <small>${demo ? t("Los archivos del ejemplo se quedan en esta pestaña.") : t("Los archivos que subís se pueden abrir por enlace directo, incluso en borrador. Subí material propio o con permiso.")}</small><label>${t("Archivo de la obra")}<input name="file" type="file" required accept="${fileAccept}"></label><label>${t("Título de la obra")}<input name="title" required maxlength="80"></label>
     <label class="checkline" id="compress-option" hidden><input type="checkbox" name="optimize" checked> ${t("Optimizar audio o video en mi dispositivo")}</label><p id="file-estimate" role="status"></p><details><summary>${t("Formatos y visualizadores")}</summary><p>${t("Imágenes JPG, PNG, WebP, AVIF, BMP y primer cuadro de GIF. Video MP4, WebM, MOV y OGV. Audio MP3, Ogg/Opus, WAV, FLAC y M4A. La reproducción depende del códec del navegador.")}</p><p>${t("Modelos GLB, glTF autocontenido, STL, OBJ y PLY ASCII. Se conserva geometría estática y color base compatible, hasta 60.000 triángulos. Los modelos se pueden girar y acercar.")}</p><p>${t("PDF página por página, CSV y TSV como tablas. Código, HTML, SVG, Markdown, JSON, cuadernos Jupyter y otros archivos de texto se leen como texto UTF-8 de hasta 512 KiB. Para una demo interactiva agregá su enlace en Sala.")}</p></details>
@@ -174,7 +175,13 @@ export async function openStudio(user, refresh, navigate, demo = false) {
       });
       if (controller.signal.aborted) return;
       const size = item.blob.size + (item.preview?.size || 0);
-      if (item.blob.size > 32 * 1024 ** 2 || size > room.available)
+      const available =
+        !demo && room.cloud && !usesCloudFile(item)
+          ? room.legacyAvailable
+          : room.available;
+      if (size > available && available < room.available)
+        throw Error("DOCUMENT_BYTES_FULL");
+      if (item.blob.size > 32 * 1024 ** 2 || size > available)
         throw Error("PILOT_BYTES_FULL");
       prepared = item;
       estimate.textContent =
@@ -187,7 +194,10 @@ export async function openStudio(user, refresh, navigate, demo = false) {
         " · " +
         t("Quedarán") +
         " " +
-        used(room.available - size);
+        used(available - size) +
+        (!demo && room.cloud && !usesCloudFile(item)
+          ? " · " + t("Espacio para documentos")
+          : "");
     } catch (e) {
       if (!controller.signal.aborted) estimate.textContent = failure(e);
     } finally {

@@ -9,6 +9,11 @@ import {
 import { adaptRoom, pathFor, previewPath } from "./catalog.js";
 import { models, codeExtensions, suffix } from "./formats.js";
 export const client = createClient(projectUrl, publicKey);
+import {
+  usesCloudFile,
+  uploadCloudWork,
+  deleteCloudWork,
+} from "./cloud-media.js";
 const bucket = client.storage.from("gallery-art");
 const unwrap = ({ data, error }) => {
   if (error) throw error;
@@ -202,13 +207,16 @@ export async function prepare(
   return { blob: file, extension, mime };
 }
 export async function uploadWork(room, file, title, prepared) {
-  const { blob, preview, extension, mime } = prepared || (await prepare(file));
+  const item = prepared || (await prepare(file));
+  const { blob, preview, extension, mime } = item;
   if (room.works.length >= 4) throw Error("PILOT_WORKS_FULL");
   if (
     blob.size > 32 * 1024 ** 2 ||
     blob.size + (preview?.size || 0) > room.available
   )
     throw Error("PILOT_BYTES_FULL");
+  if (room.cloud && usesCloudFile(item))
+    return uploadCloudWork(client, file, title, item);
   const slot = Array.from({ length: 8 }, (_, i) => i + 1).find(
     (n) => !room.works.some((w) => w.slot === n),
   );
@@ -252,6 +260,7 @@ export async function uploadWork(room, file, title, prepared) {
   }
 }
 export async function deleteWork(w) {
+  if (w.cloud_bytes) return deleteCloudWork(client, w.id);
   if (!w.external_url)
     unwrap(
       await bucket.remove(
@@ -282,6 +291,8 @@ export async function studioRoom(id) {
   ]);
   if (room) {
     const budget = unwrap(usage);
+    room.cloud = budget.cloud === true;
+    room.legacyAvailable = Number(budget.legacy_available ?? budget.available);
     room.bytes = Number(budget.used);
     room.available = Number(budget.available);
   }
