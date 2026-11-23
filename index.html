@@ -1,0 +1,127 @@
+<!doctype html>
+<html lang="es-AR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <meta name="theme-color" content="#111211" />
+    <title>Umbral — Galería de arte virtual</title>
+    <meta
+      name="description"
+      content="Descubrí arte, fotografía, video y música. Recorré exposiciones en 3D o creá tu propia sala gratuita en Umbral."
+    />
+    <meta property="og:title" content="Umbral — Galería de arte virtual" />
+    <meta property="og:type" content="website" />
+    <meta
+      property="og:description"
+      content="Un espacio abierto para exhibir y recorrer arte desde el navegador."
+    />
+    <meta
+      property="og:image"
+      content="https://luzbel33.github.io/umbral-gallery/art/social.jpg"
+    />
+    <meta
+      property="og:url"
+      content="https://luzbel33.github.io/umbral-gallery/"
+    />
+    <meta name="twitter:card" content="summary_large_image" />
+    <link rel="icon" href="%BASE_URL%favicon.svg" />
+    <link rel="preload" as="image" href="%BASE_URL%art/orbital-wide.webp" />
+  </head>
+  <body>
+    <a class="skip" href="#main">Ir al contenido</a>
+    <header class="topbar">
+      <div class="top-inner">
+        <a class="brand" href="./" aria-label="Umbral, inicio"
+          ><img src="%BASE_URL%favicon.svg" alt="" />UMBRAL</a
+        >
+        <nav aria-label="Principal">
+          <a id="explore-link" href="./" class="current">Explorar</a
+          ><a href="?vista=guardadas" id="saved-link">Guardadas</a>
+        </nav>
+        <div class="account">
+          <button id="signin" class="plain">Ingresar</button
+          ><button id="studio" class="primary small">
+            <span data-icon="plus"></span>
+            <span id="studio-label">Crear sala</span>
+          </button>
+        </div>
+      </div>
+    </header>
+    <main id="main" class="shell">
+      <section class="hero" aria-labelledby="hero-title">
+        <img
+          id="hero-image"
+          fetchpriority="high"
+          src="%BASE_URL%art/orbital-wide.webp"
+          alt="Escultura de bronce plegado sobre una peana de piedra en la sala Materia orbital"
+        />
+        <div class="hero-shade"></div>
+        <div class="hero-copy">
+          <p class="kicker"><i></i> EXPOSICIÓN DESTACADA</p>
+          <h1 id="hero-title">Materia<br />orbital<span>.</span></h1>
+          <p id="hero-desc">
+            Pliegues de bronce suspendidos entre el peso y el vacío.
+          </p>
+          <a id="hero-enter" class="primary" href="?sala=orbital&amp;modo=3d"
+            ><span data-icon="box"></span> Entrar a la sala
+            <span data-icon="arrow"></span
+          ></a>
+        </div>
+        <div class="hero-pager">
+          <span id="slide-no">01 <em>/ 03</em></span
+          ><button
+            data-slide="-1"
+            class="round"
+            aria-label="Exposición anterior"
+          >
+            <span data-icon="left"></span></button
+          ><button
+            data-slide="1"
+            class="round"
+            aria-label="Exposición siguiente"
+          >
+            <span data-icon="right"></span>
+          </button>
+        </div>
+      </section>
+      <section class="catalog" aria-labelledby="catalog-title">
+        <div class="section-heading">
+          <div>
+            <p class="kicker"><i></i> GALERÍA VIRTUAL</p>
+            <h2 id="catalog-title">Explorar salas</h2>
+          </div>
+          <button
+            class="filter-toggle"
+            id="filters-toggle"
+            aria-expanded="false"
+            aria-controls="filters"
+          >
+            <span data-icon="layers"></span> Disciplinas
+            <span data-icon="down"></span>
+          </button>
+        </div>
+        <div id="filters" class="filters"></div>
+        <div id="cards" class="cards"></div>
+        <p class="notice" id="catalog-status" role="status"></p>
+        <button class="secondary more" id="more" hidden>Ver más salas</button>
+      </section>
+    </main>
+    <footer class="shell foot">
+      <a href="./" class="brand"
+        ><img src="%BASE_URL%favicon.svg" alt="" />UMBRAL</a
+      ><span>Galería de arte abierta</span
+      ><a href="https://github.com/Luzbel33/umbral-gallery"
+        >Código abierto ↗</a
+      >
+    </footer>
+    <dialog id="panel" aria-labelledby="panel-title">
+      <div id="panel-inner"></div>
+    </dialog>
+    <div id="toast" class="toast" role="status"></div>
+    <noscript
+      >Umbral necesita JavaScript para abrir las salas y recorrerlas en
+      3D.</noscript
+    >
+    <script type="module" src="/src/main.js"></script>
+  </body>
+</html>

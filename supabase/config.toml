@@ -1,0 +1,10 @@
+project_id = "umbral-gallery"
+
+[auth]
+site_url = "https://luzbel33.github.io/umbral-gallery/"
+
+[auth.email]
+enable_confirmations = true
+
+[functions.gallery-passkeys]
+verify_jwt = false
