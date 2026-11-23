@@ -1,4 +1,5 @@
 """Make the web catalogue's small exhibition covers from the finished artwork."""
+
 from pathlib import Path
 from PIL import Image, ImageOps
 

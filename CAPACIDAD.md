@@ -4,32 +4,32 @@ El cupo social global es de **120 visitantes, en grupos de seis**. La visita ind
 
 ## Prueba de carga aislada
 
-Fecha de la prueba: 2026-11-23. Docker local con 1.024 salas publicadas y 4.096 obras sintéticas. El gateway, la base, el servidor HTTP y el generador de tráfico compartieron la máquina. La base utilizó los recursos compartidos de Docker. Las funciones reutilizaron workers.
+Fecha de la prueba: 2026-11-23. Docker local con 1.024 salas publicadas y 4.096 obras sintéticas. El gateway, la base, el servidor HTTP y el generador de tráfico compartieron la máquina. PostgreSQL tuvo un límite de 1 CPU y 512 MiB de RAM. Las funciones reutilizaron workers.
 
 Chrome registró los recursos de cada entrada en frío. Los visitantes virtuales descargaron ese conjunto y consultaron la API pública correspondiente. La lectura de metadatos usa el reintento acotado de la aplicación. El recorrido inaugural fue Materia orbital. La sala del artista exhibía cuatro fotos subidas a Storage. Los tiempos miden transferencias HTTP locales. La simulación no incluyó miles de GPU, redes móviles ni la CDN de producción.
 
 | Escenario | Visitas completas | p95 de las visitas completas |
 | --- | ---: | ---: |
-| Catálogo, 100 de golpe | 100 / 100 | 2.242 ms |
-| Catálogo, 500 de golpe | 420 / 500 | 8.160 ms |
-| Catálogo, 1.000 de golpe | 780 / 1.000 | 17.363 ms |
-| Catálogo, 1.000 en 30 segundos | 1.000 / 1.000 | 36 ms |
-| Sala inaugural 3D, 100 de golpe | 100 / 100 | 1.901 ms |
-| Sala inaugural 3D, 500 de golpe | 332 / 500 | 6.833 ms |
-| Sala inaugural 3D, 1.000 de golpe | 628 / 1.000 | 13.191 ms |
-| Sala inaugural 3D, 1.000 en 30 segundos | 1.000 / 1.000 | 79 ms |
-| Sala de artista 3D, 100 de golpe | 97 / 100 | 3.699 ms |
-| Sala de artista 3D, 500 de golpe | 202 / 500 | 15.287 ms |
-| Sala de artista 3D, 1.000 de golpe | 197 / 1.000 | 11.047 ms |
-| Sala de artista 3D, 1.000 en 30 segundos | 1.000 / 1.000 | 1.010 ms |
+| Catálogo, 100 de golpe | 100 / 100 | 2.065 ms |
+| Catálogo, 500 de golpe | 420 / 500 | 7.488 ms |
+| Catálogo, 1.000 de golpe | 780 / 1.000 | 13.726 ms |
+| Catálogo, 1.000 en 30 segundos | 1.000 / 1.000 | 3.010 ms |
+| Sala inaugural 3D, 100 de golpe | 100 / 100 | 1.898 ms |
+| Sala inaugural 3D, 500 de golpe | 332 / 500 | 7.590 ms |
+| Sala inaugural 3D, 1.000 de golpe | 556 / 1.000 | 11.065 ms |
+| Sala inaugural 3D, 1.000 en 30 segundos | 1.000 / 1.000 | 45 ms |
+| Sala de artista 3D, 100 de golpe | 100 / 100 | 3.532 ms |
+| Sala de artista 3D, 500 de golpe | 210 / 500 | 13.315 ms |
+| Sala de artista 3D, 1.000 de golpe | 203 / 1.000 | 15.040 ms |
+| Sala de artista 3D, 1.000 en 30 segundos | 1.000 / 1.000 | 256 ms |
 
 En las ráfagas instantáneas hubo fallos de conexión o del gateway incluso con el catálogo en caché. Entrar directamente a una exhibición inaugural requiere sólo archivos estáticos. Ante una interrupción de la base o del catálogo comunitario, esas muestras siguen accesibles mientras responda el alojamiento estático.
 
 ## Transferencia y visitas compartidas
 
-Archivos estáticos del catálogo en frío: 331.796 bytes. Entrada 3D a Materia orbital: 647.243 bytes. La sala de artista transfirió 439.892 bytes, de los cuales 35.110 bytes correspondieron a miniaturas. Las mismas cuatro imágenes transferían 170.612 bytes antes. El audio, el video y las obras a tamaño completo se descargan a pedido. Los otros interiores inaugurales tienen modelos de distinto tamaño.
+Archivos estáticos del catálogo en frío: 331.885 bytes. Entrada 3D a Materia orbital: 690.824 bytes. La sala de artista transfirió 440.315 bytes, de los cuales 35.110 bytes correspondieron a miniaturas. Las mismas cuatro imágenes transferían 170.612 bytes antes. El audio, el video y las obras a tamaño completo se descargan a pedido. Los otros interiores inaugurales tienen modelos de distinto tamaño.
 
-De 160 solicitudes sociales simultáneas, 120 ingresaron en 20 grupos y 40 recibieron la respuesta de cupo completo. Se completaron 2.640 / 2.640 actualizaciones de movimiento, p95 14 ms. Con seis visitantes quietos y sin chat nuevo, el cuerpo de una respuesta midió 2 bytes. La actualización con posiciones nuevas midió 361 bytes en la muestra. Las cabeceras y TLS agregan transferencia. Las reservas vencen a los 100 segundos sin renovación.
+De 160 solicitudes sociales simultáneas, 120 ingresaron en 20 grupos y 40 recibieron la respuesta de cupo completo. Se completaron 2.640 / 2.640 actualizaciones de movimiento, p95 11 ms. Con seis visitantes quietos y sin chat nuevo, el cuerpo de una respuesta midió 2 bytes. La actualización con posiciones nuevas midió 361 bytes en la muestra. Las cabeceras y TLS agregan transferencia. Las reservas vencen a los 100 segundos sin renovación.
 
 La voz se verificó por separado entre dos cuentas. Se permite un hablante por grupo y hasta seis en total, con un presupuesto diario de 10.000 fragmentos por destinatario o 40 MiB estimados. Los canales de voz son opcionales. El chat y el movimiento utilizan consultas a la base.
 
