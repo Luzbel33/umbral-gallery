@@ -6,7 +6,7 @@ export const patio = {
   title: "Patio común",
   artist: "Comunidad Umbral",
   category: "Encuentro",
-  description: "Un espacio para conversar entre exposiciones.",
+  description: "Un atrio para encontrarse entre exposiciones, alrededor de una escultura suspendida.",
   cover: art("patio.webp"),
   works: [],
   wall_color: "#bfae96",
@@ -14,7 +14,7 @@ export const patio = {
 };
 export async function showPatio(walk, login, user, isCurrent) {
   $("#main").innerHTML =
-    `<a data-nav href="./" class="crumb">${icon("back", 16)} Explorar salas</a><section class="patio-layout"><div class="patio-cover"><img src="${esc(patio.cover)}" alt="Patio de piedra con olivos, bancos y una pérgola junto al agua"><div><p class="kicker"><i></i> PUNTO DE ENCUENTRO</p><h1>Patio común<span>.</span></h1><button class="secondary" id="patio-walk">${icon("walk")} Recorrer el patio en 3D</button></div></div><section id="patio-chat" class="conversation"><h2>Sumate a la charla</h2><p>Entrá a un grupo de hasta seis personas. Podés leer como visitante o ingresar a tu cuenta para escribir y usar la voz.</p><button class="primary" id="join-patio">${icon("users")} Entrar al grupo</button><p role="status" class="form-status"></p></section></section>`;
+    `<a data-nav href="./" class="crumb">${icon("back", 16)} Explorar salas</a><section class="patio-layout"><div class="patio-cover"><img src="${esc(patio.cover)}" alt="Atrio de piedra verde con una escultura de latón suspendida sobre un espejo de agua"><div><p class="kicker"><i></i> PUNTO DE ENCUENTRO</p><h1>Patio común<span>.</span></h1><button class="secondary" id="patio-walk">${icon("walk")} Recorrer el patio en 3D</button></div></div><section id="patio-chat" class="conversation"><h2>Sumate a la charla</h2><p>Entrá a un grupo de hasta seis personas. Podés leer como visitante o ingresar a tu cuenta para escribir y usar la voz.</p><button class="primary" id="join-patio">${icon("users")} Entrar al grupo</button><p role="status" class="form-status"></p></section></section>`;
   $("#patio-walk").onclick = walk;
   let meeting = null,
     closed = false;

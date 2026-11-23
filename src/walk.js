@@ -1,3 +1,4 @@
+import { bindJoystick } from "./joystick.js";
 import * as T from "three";
 import { furnish } from "./architecture.js";
 import { courtyard } from "./courtyard.js";
@@ -15,17 +16,7 @@ export function enterWalk(room, { exit, openPiece, login }) {
     <div class="walk-top"><button id="leave" class="hud-btn">${icon("back")} <span>Modo web</span></button><div class="walk-title">${esc(room.title)}<small>${esc(room.artist)}</small></div><button class="hud-btn" id="visits" aria-pressed="false">${icon("users")} <span>Caminar en compañía</span></button>
     ${room.music ? `<button class="hud-btn" id="sound" aria-label="Activar música" aria-pressed="false">${icon("mute")}</button>` : ""}<button class="hud-btn" id="help" aria-label="Controles de movimiento">${icon("help")}</button></div>
     <div class="walk-bottom"><div class="walk-hint">${icon("move", 15)} WASD o flechas <b>·</b> Arrastrá para mirar</div><button id="inspect" class="primary" hidden>${icon("eye")} Ver obra</button></div>
-    <div class="dpad" aria-label="Controles táctiles">${[
-      ["KeyW", "↑", "Avanzar"],
-      ["KeyA", "←", "Izquierda"],
-      ["KeyS", "↓", "Retroceder"],
-      ["KeyD", "→", "Derecha"],
-    ]
-      .map(
-        ([k, t, l]) =>
-          `<button data-step="${k}" aria-label="${l}">${t}</button>`,
-      )
-      .join("")}</div>
+    <div class="joystick" role="group" aria-label="Joystick de movimiento"><span></span></div>
     </section>`;
   const state = new AbortController(),
     listen = (el, type, fn, opts = {}) =>
@@ -48,6 +39,10 @@ export function enterWalk(room, { exit, openPiece, login }) {
   camera.position.set(-1.35, 1.65, 6.6);
   camera.rotation.order = "YXZ";
   camera.lookAt(0.05, 1.83, -0.8);
+  if (room.id === "patio") {
+    camera.position.set(2.8, 1.72, 7.35);
+    camera.lookAt(0, 2.74, -1.0);
+  }
   const scene = new T.Scene();
   scene.background = new T.Color(0xd9d1c0);
   scene.fog = new T.FogExp2(0xd9d1c0, 0.024);
@@ -134,7 +129,7 @@ export function enterWalk(room, { exit, openPiece, login }) {
     if (target) openPiece(target.work);
   }
   listen(view, "pointerdown", (e) => {
-    if (e.button !== 0) return;
+    if (e.button !== 0 || drag) return;
     view.setPointerCapture(e.pointerId);
     view.focus();
     drag = { id: e.pointerId, x: e.clientX, y: e.clientY, dist: 0 };
@@ -154,7 +149,8 @@ export function enterWalk(room, { exit, openPiece, login }) {
     );
   });
   listen(view, "pointerup", (e) => {
-    if (drag?.id === e.pointerId && drag.dist < 6) inspect("point", e);
+    if (drag?.id !== e.pointerId) return;
+    if (drag.dist < 6) inspect("point", e);
     drag = null;
   });
   listen(view, "pointercancel", () => (drag = null));
@@ -178,21 +174,13 @@ export function enterWalk(room, { exit, openPiece, login }) {
   });
   listen(window, "keyup", (e) => keys.delete(e.code));
   listen(window, "blur", () => keys.clear());
-  document.querySelectorAll("[data-step]").forEach((b) => {
-    listen(b, "pointerdown", (e) => {
-      e.preventDefault();
-      b.setPointerCapture(e.pointerId);
-      keys.add(b.dataset.step);
-    });
-    for (const ev of ["pointerup", "pointercancel", "lostpointercapture"])
-      listen(b, ev, () => keys.delete(b.dataset.step));
-  });
+  const joystick = bindJoystick($(".joystick"), listen);
   $("#inspect").onclick = () => inspect("nearest");
   $("#leave").onclick = exit;
   $("#help").onclick = () =>
     panel(
       "Cómo recorrer la sala",
-      "<p>Usá W y S para avanzar o retroceder, A y D para desplazarte de lado, y las flechas laterales para girar. Arrastrá para mirar alrededor. Tocá una obra, o acercate y presioná E para abrirla. En el celular, usá las flechas en pantalla.</p>",
+      "<p>Usá W y S para avanzar o retroceder, A y D para desplazarte de lado, y las flechas laterales para girar. Arrastrá para mirar alrededor. Tocá una obra, o acercate y presioná E para abrirla. En el celular, mové el joystick con el pulgar izquierdo. Arrastrá con el derecho para mirar mientras caminás.</p>",
     );
   $("#visits").onclick = async () => {
     if (socialPending) return;
@@ -274,8 +262,10 @@ export function enterWalk(room, { exit, openPiece, login }) {
     if (!dialog.open) {
       const f =
         Number(keys.has("KeyW") || keys.has("ArrowUp")) -
-        Number(keys.has("KeyS") || keys.has("ArrowDown"));
-      const s = Number(keys.has("KeyD")) - Number(keys.has("KeyA"));
+        Number(keys.has("KeyS") || keys.has("ArrowDown")) +
+        joystick.axis.y;
+      const s =
+        Number(keys.has("KeyD")) - Number(keys.has("KeyA")) + joystick.axis.x;
       camera.rotation.y +=
         (Number(keys.has("ArrowLeft")) - Number(keys.has("ArrowRight"))) *
         dt *
@@ -309,7 +299,10 @@ export function enterWalk(room, { exit, openPiece, login }) {
         drawnRotation.copy(camera.quaternion);
         dirty = false;
       }
-    } else keys.clear();
+    } else {
+      keys.clear();
+      if (joystick.axis.x || joystick.axis.y) joystick.reset();
+    }
     if (live && !document.hidden) frame = requestAnimationFrame(draw);
   }
   listen(document, "visibilitychange", () => {

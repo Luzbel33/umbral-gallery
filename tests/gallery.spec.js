@@ -1,5 +1,54 @@
 import { test, expect } from "@playwright/test";
 
+test("walk and turn with two thumbs, then release the analog stick", async ({
+  page,
+  isMobile,
+}) => {
+  test.skip(!isMobile, "This gesture requires a touch viewport.");
+  const positions = [];
+  page.on("request", (r) => {
+    if (r.url().endsWith("/rpc/gallery_snapshot"))
+      positions.push(r.postDataJSON());
+  });
+  await page.goto("./?sala=patio&modo=3d");
+  const stick = page.getByRole("group", { name: "Joystick de movimiento" });
+  await expect(stick).toBeVisible();
+  await page.locator("#visits").click();
+  await expect.poll(() => positions.length).toBeGreaterThan(0);
+  const start = positions.at(-1),
+    rect = await stick.boundingBox(),
+    x = rect.x + rect.width / 2,
+    y = rect.y + rect.height / 2;
+  const device = await page.context().newCDPSession(page);
+  const touch = (type, touchPoints) =>
+    device.send("Input.dispatchTouchEvent", { type, touchPoints });
+  await touch("touchStart", [{ x, y, id: 0 }]);
+  await touch("touchMove", [{ x: x + 17, y: y - 15, id: 0 }]);
+  await expect(stick).toHaveClass(/engaged/);
+  await touch("touchStart", [
+    { x: x + 17, y: y - 15, id: 0 },
+    { x: 285, y: 340, id: 1 },
+  ]);
+  await touch("touchMove", [
+    { x: x + 17, y: y - 15, id: 0 },
+    { x: 242, y: 346, id: 1 },
+  ]);
+  await expect
+    .poll(
+      () =>
+        positions.some(
+          (p) =>
+            Math.hypot(p.px - start.px, p.pz - start.pz) > 0.2 &&
+            Math.abs(p.angle - start.angle) > 0.08,
+        ),
+      { timeout: 10000 },
+    )
+    .toBe(true);
+  await touch("touchEnd", []);
+  await expect(stick).not.toHaveClass(/engaged/);
+  await page.getByRole("button", { name: "Modo web" }).click();
+});
+
 test("discover, filter, save and revisit an exhibition", async ({ page }) => {
   await page.goto("./");
   await expect(

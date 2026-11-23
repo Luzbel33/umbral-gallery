@@ -1,193 +1,214 @@
 import * as T from "three";
+import { RoomEnvironment } from "three/examples/jsm/environments/RoomEnvironment.js";
+import { Reflector } from "three/examples/jsm/objects/Reflector.js";
+import { RoundedBoxGeometry } from "three/examples/jsm/geometries/RoundedBoxGeometry.js";
 import { art } from "./catalog.js";
 import { surfaceTexture } from "./architecture.js";
+
 export function courtyard(scene, renderer, invalidate) {
-  scene.background = new T.Color(0xc1d6dc);
-  scene.fog = new T.FogExp2(0xd5d4c3, 0.024);
-  const cube = new T.BoxGeometry(1, 1, 1),
-    stone = new T.MeshStandardMaterial({ color: 0xc6aa85 }),
-    wood = new T.MeshStandardMaterial({ color: 0x986c46 }),
-    sage = new T.MeshStandardMaterial({ color: 0x768458 }),
-    cloth = new T.MeshStandardMaterial({ color: 0xb57449 }),
-    water = new T.MeshStandardMaterial({
-      color: 0x4e9180,
-      metalness: 0.28,
-      roughness: 0.2,
-    });
-  const loader = new T.TextureLoader();
-  const travertine = loader.load(art("travertine.webp"), invalidate);
-  travertine.colorSpace = T.SRGBColorSpace;
-  travertine.wrapS = travertine.wrapT = T.RepeatWrapping;
-  travertine.repeat.set(3, 2);
-  stone.map = travertine;
-  stone.bumpMap = travertine;
-  stone.bumpScale = 0.045;
-  const grain = surfaceTexture(true);
-  wood.map = grain;
-  wood.roughness = 0.64;
-  const paving = stone.clone(),
-    tile = surfaceTexture(false);
-  tile.repeat.set(14, 13);
-  paving.map = tile;
-  sage.side = T.DoubleSide;
-  sage.color.set(0xffffff);
-  const blocks = [];
-  function box(x, y, z, w, h, d, m) {
-    const o = new T.Mesh(cube, m);
-    o.position.set(x, y, z);
-    o.scale.set(w, h, d);
-    o.castShadow = o.receiveShadow = true;
-    scene.add(o);
-    return o;
-  }
-  function block(x, z, w, d) {
-    blocks.push([
-      x - w / 2 - 0.22,
-      x + w / 2 + 0.22,
-      z - d / 2 - 0.22,
-      z + d / 2 + 0.22,
-    ]);
-  }
-  box(0, -0.1, 0, 19, 0.2, 20, paving);
-  box(0, 1.65, -9, 19, 3.3, 0.35, stone);
-  for (const x of [-8, 8]) box(x, 0.6, 0, 0.3, 1.2, 18, stone);
-  for (const x of [-6, -2, 2, 6]) box(x, 1.9, -5, 0.16, 3.8, 0.2, wood);
-  box(0, 3.87, -4.3, 16, 0.22, 0.2, wood);
-  for (let i = 0; i < 30; i++)
-    box(-7.7 + i * 0.53, 4, -5, 0.16, 0.19, 4.3, wood);
-  box(-2, 0.1, -1, 4.8, 0.2, 3, stone);
-  const pool = box(-2, 0.205, -1, 4.48, 0.04, 2.7, water);
-  block(-2, -1, 4.8, 3);
-  for (const [x, z] of [
-    [3, -1],
-    [3, -5],
-    [-5, -5],
-    [-4, 3],
-  ]) {
-    box(x, 0.31, z, 2.5, 0.62, 0.82, stone);
-    box(x, 0.66, z, 2.46, 0.12, 0.8, cloth);
-    block(x, z, 2.5, 0.82);
-  }
-  const leaf = new T.BufferGeometry();
-  leaf.setAttribute(
-    "position",
-    new T.Float32BufferAttribute(
-      [0, 0, 0, 0.22, 0.07, 0.44, 0, 0, 1, -0.22, 0.07, 0.44],
-      3,
-    ),
+  scene.background = new T.Color(0x252b2b);
+  scene.fog = new T.FogExp2(0x313433, 0.016);
+  const studio = new RoomEnvironment(),
+    generator = new T.PMREMGenerator(renderer);
+  const environment = generator.fromScene(studio, 0.045);
+  scene.environment = environment.texture;
+  scene.environmentIntensity = 0.79;
+  studio.dispose();
+  generator.dispose();
+  const texture = new T.TextureLoader().load(
+    art("travertine.webp"),
+    invalidate,
   );
-  leaf.setIndex([0, 1, 2, 0, 2, 3]);
-  leaf.computeVertexNormals();
-  const leaves = new T.InstancedMesh(leaf, sage, 3 * 16 * 80),
-    branchesGeometry = new T.CylinderGeometry(0.5, 1, 1, 7),
-    branches = new T.InstancedMesh(branchesGeometry, wood, 3 * 17),
-    dummy = new T.Object3D(),
-    up = new T.Vector3(0, 1, 0);
-  let n = 0,
-    limbs = 0,
-    seed = 46;
-  function random() {
-    seed = (Math.imul(seed, 1664525) + 1013904223) >>> 0;
-    return seed / 4294967296;
+  texture.colorSpace = T.SRGBColorSpace;
+  texture.wrapS = texture.wrapT = T.RepeatWrapping;
+  texture.repeat.set(4, 2);
+  const floorTiles = surfaceTexture(false);
+  floorTiles.repeat.set(12, 12);
+  const stone = new T.MeshStandardMaterial({
+    color: 0x40524f,
+    map: texture,
+    roughness: 0.62,
+    bumpMap: texture,
+    bumpScale: 0.035,
+  });
+  const basalt = new T.MeshStandardMaterial({
+    color: 0x484846,
+    roughness: 0.46,
+    metalness: 0.14,
+  });
+  const paving = basalt.clone();
+  paving.map = floorTiles;
+  paving.bumpMap = floorTiles;
+  paving.bumpScale = 0.034;
+  const brass = new T.MeshStandardMaterial({
+    color: 0xc38b51,
+    metalness: 0.85,
+    roughness: 0.25,
+  });
+  const champagne = new T.MeshStandardMaterial({
+    color: 0xedd4a6,
+    metalness: 0.85,
+    roughness: 0.2,
+  });
+  const velvet = new T.MeshStandardMaterial({
+    color: 0xb06943,
+    roughness: 0.84,
+  });
+  const amber = new T.MeshBasicMaterial({
+    color: new T.Color(1, 0.6, 0.25).multiplyScalar(2.0),
+  });
+  const alabaster = new T.MeshBasicMaterial({
+    color: new T.Color(1, 0.75, 0.46).multiplyScalar(1.6),
+    map: texture,
+  });
+  const cube = new T.BoxGeometry(),
+    rounded = new RoundedBoxGeometry(1, 1, 1, 2, 0.095),
+    circle = new T.CylinderGeometry(1, 1, 1, 96);
+  const bounds = [];
+  function box(x, y, z, w, h, d, material, geometry = cube) {
+    const mesh = new T.Mesh(geometry, material);
+    mesh.position.set(x, y, z);
+    mesh.scale.set(w, h, d);
+    mesh.castShadow = mesh.receiveShadow = true;
+    scene.add(mesh);
+    return mesh;
   }
-  function limb(start, end, width) {
-    const dir = end.clone().sub(start);
-    dummy.position.copy(start).lerp(end, 0.5);
-    dummy.scale.set(width, dir.length(), width);
-    dummy.quaternion.setFromUnitVectors(up, dir.normalize());
-    dummy.updateMatrix();
-    branches.setMatrixAt(limbs++, dummy.matrix);
+  function batch(transforms, material, geometry = cube) {
+    const mesh = new T.InstancedMesh(geometry, material, transforms.length),
+      o = new T.Object3D();
+    transforms.forEach(([x, y, z, w, h, d, rx = 0, ry = 0, rz = 0], i) => {
+      o.position.set(x, y, z);
+      o.scale.set(w, h, d);
+      o.rotation.set(rx, ry, rz);
+      o.updateMatrix();
+      mesh.setMatrixAt(i, o.matrix);
+    });
+    mesh.castShadow = mesh.receiveShadow = true;
+    scene.add(mesh);
+    return mesh;
   }
-  for (const [x, z, h] of [
-    [3, -3, 3.2],
-    [-6, -6, 2.9],
-    [6, -6, 3.6],
-  ]) {
-    const root = new T.Vector3(x, 0, z),
-      fork = new T.Vector3(x + 0.16, h * 0.52, z - 0.12);
-    limb(root, fork, 0.15);
-    block(x, z, 0.45, 0.45);
-    for (let i = 0; i < 16; i++) {
-      const a = i * 2.4,
-        r = 0.35 + 1.15 * random(),
-        end = new T.Vector3(
-          x + Math.cos(a) * r,
-          h + 0.55 * (1 - r / 1.5) + random() * 0.4,
-          z + Math.sin(a) * r,
-        );
-      limb(fork, end, 0.045);
-      for (let j = 0; j < 80; j++) {
-        const theta = random() * Math.PI * 2,
-          rad = Math.sqrt(random()) * 0.78,
-          height = random() - 0.5;
-        dummy.position.set(
-          end.x + Math.cos(theta) * rad,
-          end.y + height * 0.86,
-          end.z + Math.sin(theta) * rad,
-        );
-        dummy.rotation.set((random() - 0.5) * 1.55, theta, random() * 0.8);
-        dummy.scale.setScalar(0.1 + random() * 0.17);
-        dummy.updateMatrix();
-        leaves.setMatrixAt(n, dummy.matrix);
-        leaves.setColorAt(
-          n++,
-          new T.Color().setHSL(
-            0.2 + random() * 0.035,
-            0.19 + random() * 0.16,
-            0.18 + random() * 0.24,
-            T.SRGBColorSpace,
-          ),
-        );
-      }
+  function cylinder(x, y, z, r, h, m, wall = false) {
+    const mesh = box(x, y, z, r, h, r, m, circle);
+    if (wall) mesh.rotation.x = Math.PI / 2;
+    return mesh;
+  }
+  box(0, -0.12, 0, 18, 0.24, 19, paving);
+  box(0, 4.1, -8.8, 17.4, 8.2, 0.42, stone);
+  box(0, 4.1, 9.05, 17.4, 8.2, 0.4, stone);
+  box(0, 8.1, 0, 17.4, 0.25, 19, stone);
+  const brassRibs = [],
+    darkRibs = [],
+    lightStrips = [];
+  for (const side of [-1, 1]) {
+    box(side * 8.1, 4.1, 0, 0.3, 8.2, 19, stone);
+    for (let i = 0; i < 25; i++) {
+      const z = 7.9 - i * 0.65;
+      brassRibs.push([side * 7.8, 4, z, 0.42, 8, 0.13]);
+      if (i % 4 === 0)
+        lightStrips.push([side * 7.56, 3.7, z, 0.028, 6.8, 0.055]);
     }
+    for (let i = 0; i < 18; i++)
+      darkRibs.push([side * (3.8 + i * 0.22), 4, -8.46, 0.095, 8, 0.16]);
   }
-  leaves.castShadow = true;
-  branches.castShadow = branches.receiveShadow = leaves.receiveShadow = true;
-  scene.add(leaves, branches);
-  const sun = new T.DirectionalLight(0xffe3bf, 3);
-  sun.position.set(-8, 11, 5);
+  for (let i = 0; i < 12; i++) {
+    const z = 7 - i * 1.34;
+    darkRibs.push([0, 7.8, z, 16, 0.35, 0.13]);
+    lightStrips.push([0, 7.6, z, 12, 0.035, 0.05]);
+  }
+  batch(brassRibs, brass);
+  batch(darkRibs, basalt);
+  batch(lightStrips, amber);
+  cylinder(0, 3.85, -8.46, 3.28, 0.14, brass, true);
+  cylinder(0, 3.85, -8.34, 3.11, 0.13, alabaster, true);
+  cylinder(0, 0.14, -0.45, 3.05, 0.28, brass);
+  const waterGeometry = new T.CircleGeometry(2.94, 96);
+  const water = new Reflector(waterGeometry, {
+    clipBias: 0.005,
+    color: 0x9dbdb8,
+    textureWidth: 512,
+    textureHeight: 512,
+  });
+  water.rotation.x = -Math.PI / 2;
+  water.position.set(0, 0.292, -0.45);
+  scene.add(water);
+  // Rectangles follow the round pool rim so the diagonal passages stay open.
+  for (let i = 0; i < 12; i++) {
+    const x = -3.05 + ((i + 0.5) * 6.1) / 12,
+      z = Math.sqrt(3.05 ** 2 - x * x);
+    bounds.push([x - 0.46, x + 0.46, -0.45 - z - 0.16, -0.45 + z + 0.16]);
+  }
+  for (const x of [-4.8, 4.8])
+    for (const z of [1, -3.4]) {
+      box(x, 0.28, z, 1.05, 0.48, 2.6, basalt, rounded);
+      box(x, 0.59, z, 1.05, 0.22, 2.65, velvet, rounded);
+      bounds.push([x - 0.72, x + 0.72, z - 1.53, z + 1.53]);
+    }
+  const goldFins = [],
+    paleFins = [];
+  for (let i = 0; i < 120; i++) {
+    const a = (i * Math.PI) / 60;
+    const fin = [
+      2.05 * Math.cos(a),
+      3.23 + 1.58 * Math.sin(a) + 0.28 * Math.sin(2 * a),
+      -0.45 - 0.79 * Math.sin(2 * a + 0.35),
+      0.057,
+      0.62,
+      0.53,
+      0.42 + 1.15 * Math.sin(a + 0.2),
+      0.47 * Math.sin(2 * a),
+      a - 0.24,
+    ];
+    (i % 6 < 2 ? paleFins : goldFins).push(fin);
+  }
+  batch(goldFins, brass, rounded);
+  batch(paleFins, champagne, rounded);
+  const ambient = new T.HemisphereLight(0xffedc6, 0x699294, 1.05);
+  const sun = new T.DirectionalLight(0xffdcab, 2.5);
+  sun.position.set(-3.5, 7.5, 3.8);
   sun.castShadow = true;
   Object.assign(sun.shadow.camera, {
-    left: -13,
-    right: 13,
-    top: 13,
-    bottom: -13,
+    left: -10,
+    right: 10,
+    top: 10,
+    bottom: -10,
   });
   sun.shadow.mapSize.set(1024, 1024);
   sun.shadow.normalBias = 0.025;
-  scene.add(sun, new T.HemisphereLight(0xfff2df, 0x85916f, 1.6));
-  const portal = new T.Vector3(5.8, 1.4, -8.2);
-  box(5.8, 1.3, -8.7, 1.4, 2.6, 0.3, wood);
-  const reflection = new T.WebGLCubeRenderTarget(128, {
-    generateMipmaps: true,
-    minFilter: T.LinearMipmapLinearFilter,
-  });
-  const probe = new T.CubeCamera(0.1, 48, reflection);
-  probe.position.set(-2, 0.32, -1);
-  pool.visible = false;
-  probe.update(renderer, scene);
-  pool.visible = true;
-  water.envMap = reflection.texture;
-  water.metalness = 0.78;
-  water.roughness = 0.1;
-  water.bumpMap = grain;
-  water.bumpScale = 0.028;
+  const cool = new T.PointLight(0x90dceb, 85, 16, 2);
+  cool.position.set(5, 3, -3);
+  const glow = new T.PointLight(0xffb371, 145, 18, 2);
+  glow.position.set(-0.6, 3.9, -6);
+  scene.add(ambient, sun, cool, glow);
+  const portal = new T.Vector3(6.1, 1.4, -7.75);
+  box(6.1, 1.4, -8.1, 1.75, 2.8, 0.3, brass);
+  box(6.1, 1.42, -7.93, 1.5, 2.51, 0.05, basalt);
+  box(6.1, 2.7, -7.89, 1.5, 0.04, 0.04, amber);
   return {
-    blocks,
+    blocks: bounds,
     targets: [],
     portal,
     dispose() {
-      cube.dispose();
-      leaf.dispose();
-      leaves.dispose();
-      branches.dispose();
-      branchesGeometry.dispose();
-      reflection.dispose();
-      travertine.dispose();
-      grain.dispose();
-      tile.dispose();
-      for (const m of [wood, stone, cloth, water, sage, paving]) m.dispose();
+      water.dispose();
+      waterGeometry.dispose();
+      texture.dispose();
+      floorTiles.dispose();
+      environment.dispose();
       sun.shadow.dispose();
+      for (const g of [cube, rounded, circle]) g.dispose();
+      for (const m of [
+        stone,
+        basalt,
+        paving,
+        brass,
+        champagne,
+        velvet,
+        amber,
+        alabaster,
+      ])
+        m.dispose();
+      scene.traverse((o) => {
+        if (o.isInstancedMesh) o.dispose();
+      });
     },
   };
 }
