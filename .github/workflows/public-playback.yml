@@ -40,12 +40,21 @@ jobs:
           set -euo pipefail
           tools="$ANDROID_HOME/cmdline-tools/latest/bin"
           export PATH="$ANDROID_HOME/platform-tools:$PATH"
+          export ANDROID_USER_HOME="$RUNNER_TEMP/gallery-android"
+          export ANDROID_EMULATOR_HOME="$ANDROID_USER_HOME"
+          export ANDROID_AVD_HOME="$ANDROID_USER_HOME/avd"
+          mkdir -p "$ANDROID_AVD_HOME"
           trap 'tail -30 "$RUNNER_TEMP/gallery-emulator.log" 2>/dev/null || true' ERR
           system='system-images;android-35;google_apis_playstore;x86_64'
           "$tools/sdkmanager" --install platform-tools emulator "$system" > /dev/null
-          echo no | "$tools/avdmanager" create avd -n gallery -k "$system" --device pixel_7
+          echo no | "$tools/avdmanager" create avd -n gallery -k "$system" --device pixel_7 --path "$ANDROID_AVD_HOME/gallery.avd"
+          "$ANDROID_HOME/emulator/emulator" -list-avds | grep -Fx gallery
           sudo setfacl -m "u:$(id -un):rw" /dev/kvm
+          adb start-server
           "$ANDROID_HOME/emulator/emulator" @gallery -no-window -no-snapshot -gpu swiftshader_indirect > "$RUNNER_TEMP/gallery-emulator.log" 2>&1 &
+          emulator_pid=$!
+          sleep 4
+          kill -0 "$emulator_pid"
           timeout 240 adb wait-for-device
           timeout 240 bash -c 'until adb shell getprop sys.boot_completed | grep -q 1; do sleep 2; done'
           adb shell wm dismiss-keyguard
