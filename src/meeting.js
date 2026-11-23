@@ -1,3 +1,4 @@
+import { t } from "./i18n.js";
 import { client } from "./backend.js";
 import { failure } from "./ui.js";
 export async function joinMeeting(room, position, update, ended) {
@@ -7,7 +8,7 @@ export async function joinMeeting(room, position, update, ended) {
   if (error) throw error;
   if (!seat)
     throw Error(
-      "Se completó el cupo social. Podés explorar y volver a intentar.",
+      t("Se completó el cupo social. Podés explorar y volver a intentar."),
     );
   const {
     data: { session },
@@ -21,11 +22,14 @@ export async function joinMeeting(room, position, update, ended) {
     voice = null,
     failures = 0,
     voiceLoading = false;
-  let peerCount = 0;
+  let peerCount = 1,
+    revision = "",
+    lastPose = "",
+    lastActivity = Date.now();
   function refresh() {
     if (!mount) return;
     mount.querySelector("[data-count]").textContent =
-      `Grupo ${seat.instance} · ${peers.length || 1} de 6${failures ? " · Reconectando…" : ""}`;
+      `${t("Grupo")} ${seat.instance} · ${peerCount} ${t("de 6")}${failures ? ` ${t("· Reconectando…")}` : ""}`;
     const log = mount.querySelector("[data-log]");
     const signature = after + "-" + messages.length;
     if (log.dataset.last !== signature) {
@@ -40,7 +44,7 @@ export async function joinMeeting(room, position, update, ended) {
         }),
       );
       if (!messages.length)
-        log.textContent = "Todavía no hay mensajes en este grupo.";
+        log.textContent = t("Todavía no hay mensajes en este grupo.");
       log.dataset.last = signature;
       if (follow) log.scrollTop = log.scrollHeight;
     }
@@ -49,12 +53,14 @@ export async function joinMeeting(room, position, update, ended) {
     if (closed) return;
     try {
       const p = position(),
-        r = await client.rpc("gallery_snapshot", {
+        pose = [p.x, p.z, p.a].map((n) => Math.round(n * 20)).join(","),
+        r = await client.rpc("gallery_updates", {
           lease: seat.ticket,
           px: Math.round(p.x * 20) / 20,
           pz: Math.round(p.z * 20) / 20,
           angle: Math.round((p.a % (2 * Math.PI)) * 20) / 20,
           since_id: after,
+          known: revision,
         });
       if (closed) return;
       if (r.error) throw r.error;
@@ -64,36 +70,51 @@ export async function joinMeeting(room, position, update, ended) {
         return;
       }
       failures = 0;
-      peers = r.data.peers;
-      peerCount = peers.length;
-      if (r.data.messages.length) {
-        messages = [...messages, ...r.data.messages].slice(-40);
+      if (r.data.p) {
+        revision = r.data.r;
+        peers = r.data.p.map(([id, x, z, a]) => ({ id, x, z, a }));
+        peerCount = peers.length + 1;
+        update(peers, peerCount);
+        lastActivity = Date.now();
+      }
+      if (pose !== lastPose) {
+        lastPose = pose;
+        lastActivity = Date.now();
+      }
+      if (r.data.m?.length) {
+        messages = [...messages, ...r.data.m].slice(-40);
         after = messages.at(-1).id;
       }
       messages = messages.filter(
         (m) => Date.parse(m.created_at) > Date.now() - 900000,
       );
-      update(
-        peers.filter((p) => p.id !== seat.peer),
-        peerCount,
-      );
       refresh();
     } catch {
       if (!closed) {
         failures++;
+        if (failures >= 4) {
+          api.dispose();
+          ended();
+          return;
+        }
         refresh();
       }
     } finally {
       if (!closed)
         timer = setTimeout(
           poll,
-          document.hidden
-            ? 12000
+          (document.hidden
+            ? 32000
             : failures
-              ? Math.min(8000, 1500 * failures)
-              : peerCount > 1
-                ? 1300
-                : 2100,
+              ? Math.min(12000, 1600 * 2 ** failures)
+              : mount
+                ? 1800
+                : peerCount === 1
+                  ? 6000
+                  : Date.now() - lastActivity < 6000
+                    ? 1200
+                    : 4000) *
+            (1 + Math.random() * 0.22),
         );
     }
   }
@@ -104,8 +125,8 @@ export async function joinMeeting(room, position, update, ended) {
       voice?.dispose();
       voice = null;
       mount = root;
-      root.innerHTML = `<div class="conversation-heading"><h3>Conversación</h3><span data-count></span></div><div class="chat-log" role="log" aria-live="polite" aria-label="Mensajes del grupo" data-log></div>
-  ${session ? '<form class="chat-form"><label class="sr-only" for="chat-message">Mensaje</label><input id="chat-message" autocomplete="off" maxlength="400" required placeholder="Escribí al grupo…"><button class="primary">Enviar</button></form><div class="voice-controls"><button class="secondary" data-listen>Activar voz</button><button class="secondary speak" data-talk disabled>Mantené para hablar</button></div><small>La voz se comparte con tu grupo mientras mantenés presionado. Los mensajes se ven durante 15 minutos.</small>' : '<p>Podés leer como visitante. <button class="text-btn" data-login>Ingresá para escribir y hablar.</button></p>'}
+      root.innerHTML = `<div class="conversation-heading"><h3>${t("Conversación")}</h3><span data-count></span></div><div class="chat-log" role="log" aria-live="polite" aria-label="${t("Mensajes del grupo")}" data-log></div>
+  ${session ? `<form class="chat-form"><label class="sr-only" for="chat-message">${t("Mensaje")}</label><input id="chat-message" autocomplete="off" maxlength="400" required placeholder="${t("Escribí al grupo…")}"><button class="primary">${t("Enviar")}</button></form><div class="voice-controls"><button class="secondary" data-listen>${t("Activar voz")}</button><button class="secondary speak" data-talk disabled>${t("Mantené para hablar")}</button></div><small>${t("La voz se comparte con tu grupo mientras mantenés presionado. Los mensajes se ven durante 15 minutos.")}</small>` : `<p>${t("Podés leer como visitante.")} <button class="text-btn" data-login>${t("Ingresá para escribir y hablar.")}</button></p>`}
   <p data-feedback role="status" class="form-status"></p>`;
       refresh();
       if (!session) {
@@ -141,7 +162,7 @@ export async function joinMeeting(room, position, update, ended) {
         if (voice) {
           voice.dispose();
           voice = null;
-          listen.textContent = "Activar voz";
+          listen.textContent = t("Activar voz");
           return;
         }
         voiceLoading = true;
@@ -152,8 +173,10 @@ export async function joinMeeting(room, position, update, ended) {
           if (closed || root !== mount || !root.isConnected) v.dispose();
           else {
             voice = v;
-            listen.textContent = "Silenciar voz";
-            feedback.textContent = "Voz conectada. El micrófono está apagado.";
+            listen.textContent = t("Silenciar voz");
+            feedback.textContent = t(
+              "Voz conectada. El micrófono está apagado.",
+            );
           }
         } catch (e) {
           feedback.textContent = failure(e);

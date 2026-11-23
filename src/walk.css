@@ -198,3 +198,156 @@
   font-size: 11px;
   margin-top: 3px;
 }
+#viewport {
+  cursor: default;
+}
+#viewport:active {
+  cursor: default;
+}
+.walk-top {
+  align-items: flex-start;
+  gap: 6px;
+}
+.hud-btn,
+.walk-title,
+.walk-hint {
+  background: #171819e8;
+  border-color: #ffffff26;
+  box-shadow: 0 3px 14px #0002;
+}
+.walk-title {
+  border-left: 2px solid #d5e9ad;
+}
+#artist-card {
+  margin-right: auto;
+}
+#visits {
+  margin-left: 0;
+}
+#free-look {
+  margin-right: auto;
+}
+#walk.locked:after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 4px;
+  height: 4px;
+  background: white;
+  border-radius: 50%;
+  box-shadow: 0 0 3px #111;
+  pointer-events: none;
+}
+.scene-loading {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: #171819e8;
+  color: white;
+  border-radius: 6px;
+  padding: 10px 16px;
+}
+.artist-index .destination {
+  width: 100%;
+  background: none;
+  border-width: 0 0 1px;
+  text-align: left;
+  color: inherit;
+}
+@media (pointer: coarse), (max-width: 650px) {
+  #free-look {
+    display: none;
+  }
+  .walk-top {
+    gap: 5px;
+  }
+  .walk-title {
+    order: -1;
+    width: 100%;
+    background: linear-gradient(90deg, #141515c9, transparent);
+    box-shadow: none;
+    border: 0;
+    border-radius: 0;
+    padding: 5px 8px;
+  }
+  .walk-title small {
+    display: inline;
+    margin-left: 8px;
+    font-size: 11px;
+  }
+  .hud-btn {
+    min-height: 42px;
+  }
+  #visits span {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+  }
+  #artist-card {
+    margin-right: 0;
+  }
+}
+#walk:before {
+  content: "";
+  position: absolute;
+  z-index: 1;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(
+    180deg,
+    #07080a69,
+    transparent 17%,
+    transparent 80%,
+    #08090c45
+  );
+}
+.walk-top,
+.walk-bottom,
+.joystick,
+.scene-loading {
+  z-index: 2;
+}
+.hud-btn,
+.walk-hint {
+  border-radius: 22px;
+  padding-inline: 13px;
+}
+.walk-title {
+  background: transparent;
+  text-shadow: 0 1px 5px #000b;
+  box-shadow: none;
+  border: 0;
+  padding-block: 3px;
+  letter-spacing: -0.018em;
+  font-size: clamp(18px, 1.6vw, 24px);
+}
+.walk-title small {
+  font-weight: 550;
+  font-size: 11px;
+  letter-spacing: 0.025em;
+  color: #fff;
+}
+.walk-top {
+  align-items: center;
+}
+.walk-bottom .film-control {
+  margin-left: auto;
+}
+@media (pointer: coarse), (max-width: 650px) {
+  .walk-title {
+    margin: 0 0 3px;
+    padding-left: 4px;
+  }
+  .hud-btn {
+    padding-inline: 9px;
+  }
+  .walk-bottom {
+    max-width: 58%;
+    align-items: flex-end;
+    flex-direction: column;
+  }
+}

@@ -1,3 +1,4 @@
+import {t} from "./i18n.js";
 import { client } from "./backend.js";
 export async function connectVoice(seat, host) {
   const talk = host.querySelector("[data-talk]"),
@@ -63,7 +64,7 @@ export async function connectVoice(seat, host) {
       node.start(nextPlay);
       nextPlay += buf.duration;
       status.textContent =
-        "Habla " + String(p.nick || "un visitante").slice(0, 48);
+        `${t("Habla")} ` + String(p.nick || t("un visitante")).slice(0, 48);
     } catch {}
   }
   function enqueue(bytes) {
@@ -82,7 +83,7 @@ export async function connectVoice(seat, host) {
         if (r.error) throw r.error;
       })
       .catch(() => {
-        status.textContent = "Se interrumpió el envío de voz.";
+        status.textContent = t("Se interrumpió el envío de voz.");
       })
       .finally(() => pending--);
   }
@@ -95,12 +96,12 @@ export async function connectVoice(seat, host) {
     source?.disconnect();
     source = null;
     talk.classList.remove("transmitting");
-    talk.textContent = "Mantené para hablar";
+    talk.textContent = t("Mantené para hablar");
     const rec = capture;
     capture = null;
     if (rec) {
       talk.disabled = true;
-      status.textContent = "Micrófono apagado.";
+      status.textContent = t("Micrófono apagado.");
     }
     const finish = () => {
       if (!gate) return;
@@ -128,7 +129,7 @@ export async function connectVoice(seat, host) {
     const n = ++attempt;
     try {
       if (!navigator.mediaDevices?.getUserMedia || !ctx.audioWorklet)
-        throw Error("Este navegador no ofrece micrófono para la galería.");
+        throw Error(t("Este navegador no ofrece micrófono para la galería."));
       await ctx.resume();
       const mic = await navigator.mediaDevices.getUserMedia({
         audio: {
@@ -145,7 +146,7 @@ export async function connectVoice(seat, host) {
       stream = mic;
       const r = await say("begin");
       if (r.error || !r.data)
-        throw Error("La voz está ocupada. Probá de nuevo en unos segundos.");
+        throw Error(t("La voz está ocupada. Probá de nuevo en unos segundos."));
       if (dead || !pressed || n !== attempt) {
         await say("end");
         return;
@@ -160,13 +161,13 @@ export async function connectVoice(seat, host) {
       };
       source.connect(capture);
       talk.classList.add("transmitting");
-      talk.textContent = "Hablando · soltá para cortar";
-      status.textContent = "Micrófono activo.";
+      talk.textContent = t("Hablando · soltá para cortar");
+      status.textContent = t("Micrófono activo.");
       finishTimer = setTimeout(release, 13500);
     } catch (e) {
       status.textContent =
         e.name === "NotAllowedError"
-          ? "El micrófono necesita permiso del navegador."
+          ? t("El micrófono necesita permiso del navegador.")
           : e.message;
       release();
     } finally {
@@ -179,7 +180,7 @@ export async function connectVoice(seat, host) {
     );
     await new Promise((resolve, reject) => {
       const timeout = setTimeout(
-        () => reject(Error("No se pudo conectar la voz.")),
+        () => reject(Error(t("No se pudo conectar la voz."))),
         10000,
       );
       channel.on("broadcast", { event: "audio" }, play).subscribe((s) => {
@@ -188,7 +189,7 @@ export async function connectVoice(seat, host) {
           resolve();
         } else if (["CHANNEL_ERROR", "TIMED_OUT", "CLOSED"].includes(s)) {
           clearTimeout(timeout);
-          reject(Error("El canal de voz no está disponible."));
+          reject(Error(t("El canal de voz no está disponible.")));
           if (!dead) {
             talk.disabled = true;
             release();
@@ -203,7 +204,7 @@ export async function connectVoice(seat, host) {
   const listening = await say("listen");
   if (listening.error || !listening.data) {
     dispose();
-    throw Error("No se pudo activar la escucha.");
+    throw Error(t("No se pudo activar la escucha."));
   }
   talk.disabled = false;
   on(talk, "pointerdown", (e) => {

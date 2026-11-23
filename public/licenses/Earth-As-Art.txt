@@ -1,0 +1,7 @@
+Earth As Art exhibition prints. Satellite imagery courtesy of the U.S. Geological Survey.
+Earth Resources Observation and Science (EROS) Center.
+The USGS designates each source image below as Public Domain.
+The poster margins were removed. Display copies are resized WebP images.
+Parana River Delta (Landsat 7): https://www.usgs.gov/media/images/parana-river-delta
+Sabotage (Landsat 8): https://www.usgs.gov/media/images/sabotage
+Andes (ASTER): https://www.usgs.gov/media/images/andes

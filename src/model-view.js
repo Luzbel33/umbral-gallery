@@ -1,3 +1,4 @@
+import {t} from "./i18n.js";
 import * as T from "three";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
 import { decodeMesh } from "./mesh.js";
@@ -11,7 +12,7 @@ export function geometryFrom(bytes) {
     scale = 2 / Math.max(size.x, size.y, size.z);
   if (!Number.isFinite(scale) || scale > 1e10) {
     g.dispose();
-    throw Error("La malla no tiene volumen visible.");
+    throw Error(t("La malla no tiene volumen visible."));
   }
   g.center();
   g.scale(scale, scale, scale);
@@ -22,7 +23,7 @@ export function showModel(el, bytes) {
   const geometry = geometryFrom(bytes),
     renderer = new T.WebGLRenderer({ antialias: true, alpha: true });
   el.innerHTML =
-    "<p>Arrastrá para girar. Usá dos dedos o la rueda para acercarte.</p>";
+    `<p>${t("Arrastrá para girar. Usá dos dedos o la rueda para acercarte.")}</p>`;
   el.append(renderer.domElement);
   renderer.domElement.className = "model-canvas";
   renderer.setPixelRatio(Math.min(devicePixelRatio, 1.5));

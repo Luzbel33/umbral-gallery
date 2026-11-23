@@ -1,3 +1,4 @@
+import {t} from "./i18n.js";
 import {
   startRegistration,
   startAuthentication,
@@ -13,14 +14,14 @@ async function invoke(body) {
     try {
       detail = (await error.context?.json())?.error;
     } catch {}
-    throw Error(detail || "No se pudo conectar con el registro de Umbral.");
+    throw Error(detail || t("No se pudo conectar con el registro de Umbral."));
   }
   return data;
 }
 export async function authenticate(mode, label) {
   if (!browserSupportsWebAuthn())
     throw Error(
-      "Abrí Umbral en un navegador con llaves de acceso y conexión HTTPS.",
+      t("Abrí Umbral en un navegador con llaves de acceso y conexión HTTPS."),
     );
   const { options, ticket } = await invoke({ step: "begin", mode, label });
   const credential =

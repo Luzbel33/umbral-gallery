@@ -1,38 +1,42 @@
 # Umbral
 
-Galería virtual gratuita para artistas, músicos y programadores. Abrí una sala en el navegador o recorré la exposición en 3D con teclado, mouse o controles táctiles. [Entrar a Umbral](https://luzbel33.github.io/umbral-gallery/) · [Visitar el patio](https://luzbel33.github.io/umbral-gallery/?sala=patio).
+An open virtual museum for art, music and creative code. Visit an exhibition as a web page, walk through its architecture in 3D, or open a free room of your own. Umbral runs in the browser on desktop and mobile. [Visit the museum](https://luzbel33.github.io/umbral-gallery/) · [Enter the atrium](https://luzbel33.github.io/umbral-gallery/?sala=patio) · [Leer en español](README.es.md)
 
-![Materia orbital, escultura original de la colección inaugural](public/art/orbital-wide.webp)
+![The photography gallery showing three satellite landscapes from South America](public/art/cover-estratos.webp)
 
-## Visitar o exponer
+## Visit
 
-Explorá el catálogo sin cuenta. Elegí una disciplina o entrá directamente desde el enlace de cualquier sala pública. Podés marcar favoritos como visitante en ese navegador. Al ingresar a una cuenta, las salas guardadas en ella se sincronizan entre dispositivos.
+Browse the catalogue by discipline or follow a direct room link as a guest. The website follows the browser's primary language, Spanish for Spanish variants and English otherwise. The language switch remembers your choice. Each room has a web exhibition, an artist profile and a walkable counterpart.
 
-Usá **Registrarme** para elegir tu nombre y crear una llave de acceso WebAuthn. Podés quedarte como visitante registrado. Para exponer abrí **Mi espacio → Crear mi sala**. Cada cuenta tiene una sola sala. Elegí título, disciplina, color, piso y música de ambiente. Agregá enlaces HTTPS a tu web, red social y proyecto o demo. En **Obras y archivos** podés subir, retirar e intercambiar obras entre ocho posiciones. **Mostrar mi sala en el catálogo público** publica la sala. Cada archivo subido ya se puede abrir por enlace directo. Para eliminarlo, usá **Retirar**.
+Move the mouse to look and use WASD to walk. **Enable free look** captures the pointer for unlimited turns. Escape releases it. On a touchscreen, walk with the analog stick and look with your other thumb. Use **Rooms** to change exhibitions from anywhere. Open **Artist profile** to find works and links. The cinema projects its film on request. The listening studio and atrium have separate recordings and playback controls.
 
-El piloto admite una llave por cuenta. Elegí una llave sincronizada o conservá una llave física. La pérdida de la única copia impide recuperar la cuenta. Las passkeys dependen del dominio de registro y de la compatibilidad del dispositivo. No se solicita correo.
+## Exhibit
 
-### Archivos que se pueden exponer
+Choose **Exhibit my work** or **Sign up**. Create a passkey and enter a public name. An account can participate and save favorites before creating a room. Each account may create one room. Guests' local bookmarks stay in that browser. Signed-in favorites follow the account.
 
-| Contenido | Formatos y experiencia |
+In **My space**, create your room and set its title, discipline, wall color, floor, soundtrack and public visibility. Add your biography, website, social link and repository or demo. Use **Works and files** to upload, remove or exchange works between eight positions. Publishing makes the room discoverable in the catalogue. Uploaded files can be opened by direct URL from the moment of upload. Remove a work to remove its stored files.
+
+The pilot uses one WebAuthn passkey per account. Choose a synchronized passkey or keep a physical key. Account recovery requires access to that credential. Credentials are tied to the registered domain.
+
+| Media | Browser experience |
 | --- | --- |
-| Imagen | JPG, PNG, WebP, AVIF, BMP y primer cuadro de GIF. Conversión a WebP de hasta 1.920 px por lado. |
-| Video y música | Video MP4, WebM, MOV y OGV. Audio MP3, WAV, Ogg, Opus, M4A y FLAC. Reproductor del navegador según los códecs del dispositivo. Cada pista de audio puede elegirse como ambiente de sala. |
-| Escultura, diseño y modelos | GLB, glTF con datos embebidos, OBJ, STL y PLY ASCII. Visor con giro y zoom. La geometría estática y el color base compatible se convierten al formato interno, con un límite de 60.000 triángulos. |
-| Documentos y datos | PDF paginado en canvas, CSV y TSV en tabla, JSON formateado y cuadernos Jupyter con las celdas visibles. |
-| Código y escritura | Texto UTF-8, Markdown, scripts, HTML, SVG como fuente, shaders y decenas de extensiones más. El contenido se muestra como texto. Las demos ejecutables y repositorios se abren desde el enlace externo que elija el artista. [Lista de extensiones](src/formats.js). |
+| Images | JPG, PNG, WebP, AVIF, BMP and the first frame of a GIF. Images become WebP up to 1,920 pixels on the long side, with lightweight previews for larger images. |
+| Sound and moving image | MP3, WAV, Ogg, Opus, M4A, FLAC, MP4, WebM, MOV and OGV. Playback depends on the device's codecs. Audio works can become the room soundtrack. |
+| 3D | Self-contained GLB/glTF, OBJ, STL and ASCII PLY. Static geometry and supported base colors are converted to a bounded internal mesh. Rotate and zoom in the viewer. Up to 60,000 triangles. |
+| Documents and data | PDF pages rendered on canvas, CSV/TSV tables, formatted JSON and notebook cells. |
+| Code and writing | UTF-8 text, Markdown, shaders and source code. HTML and SVG open as source. Authors can link to runnable demos on their own sites. [Supported extensions](src/formats.js) |
 
-Cada sala admite ocho obras y cada archivo hasta 12 MiB. El límite de código y texto es 512 KiB. Los modelos se validan y convierten antes de subirlos. Los visores especializados se cargan al abrir una obra y ponen límites al tamaño descargado. El PDF se dibuja sin habilitar scripts ni formularios interactivos. El sitio usa una política de contenido y los enlaces públicos abren sin acceso a la ventana de origen. Quien opera la galería puede ocultar una sala. Para reportar contenido, compartí la URL pública sin datos personales en los [issues del proyecto](https://github.com/Luzbel33/umbral-gallery/issues).
+Limits are eight works per room, 12 MiB per upload and 512 KiB for text and code. The PDF viewer disables scripting. Uploaded code is displayed as text. External links require HTTPS. To report content, include the room URL in a [repository issue](https://github.com/Luzbel33/umbral-gallery/issues).
 
-### Patio, chat y voz
+## Shared visits
 
-Entrá al patio desde el menú en modo web o 3D. También podés activar **Caminar en compañía** en una exposición. Los visitantes que se suman comparten grupo, posiciones y chat. Con cuenta podés escribir y habilitar la voz. Al escuchar, el micrófono queda apagado hasta que mantenés presionado **Mantené para hablar**. Soltar el control, cambiar de ventana o llegar al límite de una intervención detiene la captura. El servidor reenvía el audio a oyentes del mismo grupo mediante canales privados. La aplicación no guarda grabaciones. Los últimos mensajes de los 15 minutos recientes se muestran en el grupo.
+The atrium and exhibitions offer groups of six, with 120 social seats across the pilot. Individual visits remain available when all seats are occupied. Guests can read chat. Signed-in visitors can write and enable optional push-to-talk voice. Listening starts with the microphone off. Releasing the control stops capture. Voice packets use private recipient channels. Text chat displays recent messages for 15 minutes.
 
-El cupo global es de 120 visitas sociales, de a seis por grupo. Al llenarse se conserva la visita individual. La capacidad observada, el coste de las descargas y los presupuestos de la voz están en el [informe de pruebas de carga](CAPACIDAD.md).
+The [capacity report](CAPACITY.md) distinguishes browser rendering, simultaneous arrivals, social seats and monthly transfer. The public catalogue uses a bounded short-lived anonymous cache, keyset pagination and small cover images. Authenticated editing reads directly from the database. Inaugural rooms and their media are static files on GitHub Pages. The walk loads on entry, reuses baked lighting and adjusts its drawing resolution under frame pressure.
 
-## Desarrollo y publicación
+## Run locally
 
-Requiere Node 22.12 o posterior y un navegador moderno. El recorrido usa WebGL 2. La vista web permite visitar sin aceleración 3D.
+Use Node 22.12 or newer. Walk mode requires WebGL 2. The web version also works on devices without it.
 
 ```sh
 npm ci
@@ -40,28 +44,31 @@ npm run dev
 npm run build
 ```
 
-Vite imprime la URL local. Por defecto el backend es el del piloto. Para desarrollar con datos propios, definí `VITE_SUPABASE_URL` y `VITE_SUPABASE_PUBLISHABLE_KEY`. `BASE_PATH` permite cambiar el prefijo `/umbral-gallery/`. GitHub Actions compila `dist/` y lo publica en Pages al actualizar `main`. Las exposiciones inaugurales disponen de páginas estáticas, metadatos de vista previa y sitemap.
+Vite prints the local URL. The default configuration connects to the public pilot. To use your own backend, set `VITE_SUPABASE_URL` and `VITE_SUPABASE_PUBLISHABLE_KEY`. `BASE_PATH` changes the default `/umbral-gallery/` prefix. GitHub Actions builds and deploys `dist/` to Pages when `main` is updated. The inaugural exhibitions have static pages, preview metadata and a sitemap.
 
-Para una copia independiente, creá el proyecto de Supabase, actualizá los enlaces del sitio y del sitemap a tu dominio estable y configurá el origen HTTPS permitido para las funciones:
+To run an independent deployment, update the site's stable HTTPS origin, public URLs and sitemap, then configure the backend.
 
 ```sh
-supabase link --project-ref TU_PROYECTO
+supabase link --project-ref YOUR_PROJECT_REF
 supabase db push --linked
-supabase secrets set GALLERY_ORIGIN=https://tu-dominio.example
+supabase secrets set GALLERY_ORIGIN=https://your-domain.example
 supabase functions deploy gallery-passkeys --use-api
 supabase functions deploy gallery-voice --use-api
+supabase functions deploy gallery-public --use-api
 ```
 
-La función de identidad verifica WebAuthn y emite sesiones. Los retos firmados vencen en tres minutos y se consumen una sola vez. La función de voz comprueba la sesión, el turno y el cupo antes de transmitir. Las claves de servicio permanecen en el runtime del backend. PostgreSQL aplica propiedad por cuenta, permisos por fila, posiciones únicas, límites de texto y autorización por grupo. Storage sirve archivos públicos directamente. Las reservas de subidas interrumpidas pueden retirarse desde el editor.
+The identity function verifies WebAuthn challenges. The voice function verifies membership and the voice budget before delivery. PostgreSQL enforces row ownership, unique placement and group access. Storage uses reserved paths for original files and thumbnails. The public read function uses anonymous permissions and accepts a fixed set of catalogue queries. The editor can remove an interrupted upload. Configure Realtime private-channel access for a separate hosted project. [Realtime settings](https://supabase.com/docs/guides/realtime/settings)
 
-Para las pruebas de navegación, iniciá el sitio en el puerto 5178 y ejecutá `npx playwright test`. `GALLERY_TEST_URL` y `CHROME_PATH` permiten elegir el sitio y el navegador. Para usar el navegador incluido en Playwright ejecutá previamente `npx playwright install chromium`. Para ensayar carga descargá y ejecutá una pila local de Supabase como se indica en el [informe reproducible](CAPACIDAD.md).
+## Verification
 
-La prueba integral del editor y la comunidad usa dos cuentas temporales, un autenticador de prueba y audio sintético. En la pila local, configurá un archivo de entorno con `GALLERY_ORIGIN=http://localhost:5184`, iniciá `supabase functions serve --env-file RUTA_AL_ARCHIVO` y ejecutá `node scripts/test-community.mjs`. Las capturas se guardan en `.qa/`.
+Run `npx playwright test` against a running instance using `GALLERY_TEST_URL` and optionally `CHROME_PATH`. The suite covers language detection, touch navigation, mouse look, discovery, bookmarks and playback. Install Playwright Chromium with `npx playwright install chromium` when using its bundled browser.
 
-En una copia alojada, restringí Realtime a canales privados desde la configuración del proyecto. La política de voz sólo permite escuchar el canal asignado a la propia visita autenticada. [Configuración de Realtime](https://supabase.com/docs/guides/realtime/settings).
+For isolated integration tests, start local Supabase via Docker, set `GALLERY_ORIGIN=http://localhost:5184` in a local environment file, then start `supabase functions serve --env-file PATH_TO_FILE`. Run `node scripts/test-community.mjs` for account, publishing, upload, viewer, chat and microphone coverage. Run `node scripts/load-gallery.mjs` separately for the loopback load test. Both use temporary fixtures.
 
-## Arte y licencias
+## Art and licenses
 
-El código y las piezas originales de Estudio Umbral en este repositorio se distribuyen bajo [MIT](LICENSE). Cada persona conserva los derechos de las obras que suba. Barlow Condensed y Space Grotesk usan SIL Open Font License 1.1. Sus licencias están en `public/licenses/`.
+The [MIT license](LICENSE) covers the application and original Umbral Studio work. Artists retain rights to their uploads. Instrument Serif and Space Grotesk use the SIL Open Font License.
 
-`art/render.py` reconstruye las cuatro exposiciones con Blender y Cycles. `art/patio.py` construye el patio para la portada. `art/media.py` sintetiza la banda sonora y genera el estudio de movimiento con Python, NumPy y FFmpeg.
+- **Cylinder Five** and **Cylinder Six** were written, produced and performed by Chris Zabriskie in 2014. Umbral transcodes the tracks to MP3. [Cylinders](https://chriszabriskie.com/cylinders/) · [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/)
+- The **Earth As Art** exhibition presents three USGS EROS satellite images of Argentina and Chile. The source pages designate them as public domain. Umbral crops the poster borders and resizes the images. [Sources and credits](public/licenses/Earth-As-Art.txt)
+- `art/interiors.py` builds the four walkable interiors and bakes their light atlases with Blender Cycles. `art/render.py` and `art/patio.py` generate original exhibition imagery. `art/media.py` generates the cinema loop with FFmpeg. Third-party notices are in [public/licenses](public/licenses/).

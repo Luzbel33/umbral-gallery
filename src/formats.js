@@ -1,3 +1,4 @@
+import {t} from "./i18n.js";
 export const codeExtensions =
   "txt md markdown rst json jsonl ndjson csv tsv yaml yml toml ini cfg conf log xml svg html htm css scss sass less js jsx mjs cjs ts tsx vue svelte astro py ipynb r rmd java kt kts swift c h cpp cc cxx hpp cs go rs rb php lua sh bash zsh ps1 sql graphql gql dart scala clj cljs ex exs erl hs fs fsharp sol gd glsl vert frag wgsl asm tex diff patch dockerfile makefile".split(
     " ",
@@ -34,12 +35,12 @@ export function workType(ext) {
   return "audio";
 }
 export const typeLabels = {
-  image: "Imagen",
+  image: t("Imagen"),
   video: "Video",
   audio: "Audio",
-  model: "Modelo 3D",
-  source: "Texto o código",
-  document: "Documento PDF",
+  model: t("Modelo 3D"),
+  source: t("Texto o código"),
+  document: t("Documento PDF"),
 };
 export function safeLink(raw) {
   if (!raw) return "";
@@ -59,7 +60,7 @@ export async function readBounded(url, limit, signal) {
     referrerPolicy: "no-referrer",
   });
   if (!response.ok || Number(response.headers.get("content-length")) > limit)
-    throw Error("No se pudo abrir este archivo dentro del límite del visor.");
+    throw Error(t("No se pudo abrir este archivo dentro del límite del visor."));
   const reader = response.body.getReader(),
     chunks = [];
   let total = 0;
@@ -70,7 +71,7 @@ export async function readBounded(url, limit, signal) {
       total += value.length;
       if (total > limit) {
         await reader.cancel();
-        throw Error("El archivo supera el límite del visor.");
+        throw Error(t("El archivo supera el límite del visor."));
       }
       chunks.push(value);
     }

@@ -14,7 +14,7 @@ export default defineConfig(({ mode }) => {
     "font-src 'self' data:",
     "img-src 'self' data: blob: " + api,
     "media-src 'self' blob: " + api,
-    "connect-src 'self' " + api + " " + ws,
+    "connect-src 'self' blob: " + api + " " + ws,
     "object-src 'none'",
     "frame-src 'none'",
     "base-uri 'self'",

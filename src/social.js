@@ -1,3 +1,4 @@
+import {t} from "./i18n.js";
 import * as T from "three";
 import { joinMeeting } from "./meeting.js";
 export async function joinVisitors(
@@ -54,7 +55,7 @@ export async function joinVisitors(
             dirty = true;
           }
         }
-        onStatus("En compañía · " + count);
+        onStatus(`${t("En compañía ·")} ` + count);
       },
       () => {
         clear();

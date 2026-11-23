@@ -3,6 +3,7 @@ import { performance } from "node:perf_hooks";
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { createClient } from "@supabase/supabase-js";
 import { chromium } from "playwright";
+import { readPublicJSON } from "../src/public-gallery.js";
 import { localStack, serveStage, stageURL } from "./staging.mjs";
 // This harness has no selectable remote target. It exercises only the local stack.
 const stack = localStack(),
@@ -30,14 +31,13 @@ const sql = (query) =>
   );
 const base = "/rest/v1/",
   url = (p) => stack.url + base + p;
-const catalog = url(
-  "gallery_catalog?select=id,title,artist,category,wall_color,cover_id&order=created_at.desc,id.asc&limit=13",
-);
+const catalog = stack.url + "/functions/v1/gallery-public";
 async function request(endpoint, body) {
   if (!["127.0.0.1"].includes(new URL(endpoint).hostname))
     throw Error("Destino externo rechazado");
   const response = await fetch(endpoint, {
     headers,
+    signal: AbortSignal.timeout(18000),
     method: body ? "POST" : "GET",
     body: body ? JSON.stringify(body) : undefined,
   });
@@ -49,6 +49,15 @@ async function request(endpoint, body) {
 }
 const rpc = async (name, body) =>
   (await request(url("rpc/" + name), body)).json();
+async function visitResource(endpoint) {
+  if (new URL(endpoint).hostname !== "127.0.0.1")
+    throw Error("Local fixtures only");
+  if (endpoint.startsWith(stack.url + "/functions/v1/gallery-public")) {
+    await readPublicJSON(endpoint);
+    return;
+  }
+  await (await request(endpoint)).arrayBuffer();
+}
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const output = {
   created: new Date().toISOString(),
@@ -123,13 +132,14 @@ try {
   ).json();
   const room = artist[0].id;
   sql(
-    "update public.works set extension='webp',source_name='foto.webp' where room_id='" +
+    "update public.works set extension='webp',has_preview=true,source_name='foto.webp' where room_id='" +
       room +
       "'",
   );
   const works = await (
     await request(url("works?select=id&room_id=eq." + room + "&order=slot"))
   ).json();
+  const encoder = await browser.newPage();
   for (const [i, w] of works.entries()) {
     const key = room + "/" + w.id + ".webp",
       bytes = await readFile(
@@ -143,7 +153,28 @@ try {
     });
     if (error) throw error;
     objects.push(key);
+    const preview = await encoder.evaluate(async (encoded) => {
+      const bitmap = await createImageBitmap(
+        await (await fetch("data:image/webp;base64," + encoded)).blob(),
+      );
+      const c = document.createElement("canvas");
+      const scale = Math.min(1, 480 / Math.max(bitmap.width, bitmap.height));
+      c.width = Math.round(bitmap.width * scale);
+      c.height = Math.round(bitmap.height * scale);
+      c.getContext("2d").drawImage(bitmap, 0, 0, c.width, c.height);
+      bitmap.close();
+      return c.toDataURL("image/webp", 0.66).split(",")[1];
+    }, bytes.toString("base64"));
+    const thumbnail = room + "/" + w.id + ".preview.webp";
+    const stored = await galleryFiles.upload(
+      thumbnail,
+      Buffer.from(preview, "base64"),
+      { contentType: "image/webp", upsert: true },
+    );
+    if (stored.error) throw stored.error;
+    objects.push(thumbnail);
   }
+  await encoder.close();
   const scenarios = onlyArtist
     ? []
     : [
@@ -193,10 +224,17 @@ try {
       storageBytes,
       storageCount,
     };
-    if (name === "artist" && storageCount !== 4)
-      throw Error(
-        "Las cuatro imágenes de la sala deben formar parte de la carga.",
-      );
+    if (
+      name === "artist" &&
+      (storageCount < 1 ||
+        storageCount > 4 ||
+        [...seen].some(
+          (url) =>
+            url.includes("/storage/v1/object/public/") &&
+            !url.endsWith(".preview.webp"),
+        ))
+    )
+      throw Error("Se esperaban miniaturas visibles en la entrada de la sala.");
   }
   await browser.close();
   await request(catalog).then((r) => r.arrayBuffer());
@@ -210,9 +248,8 @@ try {
     for (const n of [100, 500, 1000])
       await run(name + "-cold", n, 1, async () => {
         // Each visitor fetches the same cold resource set from the compressed, local origin.
-        for (const endpoint of urls[name])
-          await (await request(endpoint)).arrayBuffer();
-        if (name === "catalog") await (await request(catalog)).arrayBuffer();
+        for (const endpoint of urls[name]) await visitResource(endpoint);
+        if (name === "catalog") await visitResource(catalog);
       });
   }
   for (const name of Object.keys(urls))
@@ -221,9 +258,8 @@ try {
       1000,
       1,
       async () => {
-        for (const endpoint of urls[name])
-          await (await request(endpoint)).arrayBuffer();
-        if (name === "catalog") await (await request(catalog)).arrayBuffer();
+        for (const endpoint of urls[name]) await visitResource(endpoint);
+        if (name === "catalog") await visitResource(catalog);
       },
       30000,
     );
@@ -247,17 +283,21 @@ try {
     await Promise.all(
       seats.map(async (s, i) => {
         await sleep(i * 8);
+        let known = "";
         for (let j = 0; j < 22; j++) {
           const now = performance.now();
           try {
-            const data = await rpc("gallery_snapshot", {
+            const data = await rpc("gallery_updates", {
               lease: s.ticket,
               px: Math.sin(j),
               pz: Math.cos(j),
               angle: j,
               since_id: 0,
+              known,
             });
-            if (data?.peers.length !== 6) throw Error("Grupo incompleto");
+            if (!data || (data.p && data.p.length !== 5))
+              throw Error("Grupo incompleto");
+            if (data.r) known = data.r;
             t.push(performance.now() - now);
           } catch {
             errors++;
@@ -267,6 +307,25 @@ try {
       }),
     );
     stats("social-moving", 120, t, start, errors);
+    const sample = {
+      lease: seats[0].ticket,
+      px: 0,
+      pz: 0,
+      angle: 0,
+      since_id: 0,
+    };
+    const moving = await rpc("gallery_updates", sample);
+    const quiet = await rpc("gallery_updates", {
+      ...sample,
+      since_id: moving.m?.at(-1)?.id || 0,
+      known: moving.r,
+    });
+    output.social.unchangedBodyBytes = Buffer.byteLength(JSON.stringify(quiet));
+    if (output.social.unchangedBodyBytes !== 2)
+      throw Error("Unexpected quiet response");
+    output.social.changedBodyBytes = Buffer.byteLength(
+      JSON.stringify({ p: moving.p, r: moving.r }),
+    );
   }
   await mkdir(".qa", { recursive: true });
   await writeFile(

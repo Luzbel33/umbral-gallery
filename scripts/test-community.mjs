@@ -22,6 +22,7 @@ const actors = [],
   errors = [];
 async function actor(mobile = false, credential = null) {
   const ctx = await browser.newContext({
+    locale: "es-AR",
     viewport: mobile
       ? { width: 375, height: 812 }
       : { width: 1440, height: 950 },
@@ -148,7 +149,7 @@ const uploadFiles = [
   ],
   ["memoria.pdf", "application/pdf", pdf()],
   ["obra.webp", "image/webp", await readFile("public/art/orbital.webp")],
-  ["banda.mp3", "audio/mpeg", await readFile("public/art/onda.mp3")],
+  ["banda.mp3", "audio/mpeg", await readFile("public/art/cylinder-06.mp3")],
   ["obra-video.mp4", "video/mp4", await readFile("public/art/transito.mp4")],
 ];
 const a = await actor(),
@@ -226,7 +227,9 @@ try {
   await p.locator("#room-form").waitFor();
   await p.locator("#room-form [name=title]").fill("Ensayo del estudio");
   await p.locator("select[name=category]").selectOption("Programación");
-  await p.locator(".studio-links summary").click();
+  await p
+    .getByLabel("Biografía del artista")
+    .fill("Autor de la exposición de prueba.");
   await p
     .getByLabel("Repositorio o demo")
     .fill("https://github.com/Luzbel33/umbral-gallery");
@@ -267,6 +270,9 @@ try {
   );
   await phone.goto(site + "?sala=" + id);
   await expect(phone.locator(".pieces article")).toHaveCount(7);
+  await expect(phone.locator(".artist-profile")).toContainText(
+    "Autor de la exposición de prueba.",
+  );
   for (const [title, sel] of [
     ["demo", "pre"],
     ["serie", "table"],
@@ -403,11 +409,19 @@ try {
   server?.close();
   if (db) {
     for (const [id, label] of actors) {
-      const r = await db.from("works").select("id,extension").eq("room_id", id);
+      const r = await db
+        .from("works")
+        .select("id,extension,has_preview")
+        .eq("room_id", id);
       if (r.data?.length)
         await db.storage
           .from("gallery-art")
-          .remove(r.data.map((w) => id + "/" + w.id + "." + w.extension));
+          .remove(
+            r.data.flatMap((w) => [
+              id + "/" + w.id + "." + w.extension,
+              ...(w.has_preview ? [id + "/" + w.id + ".preview.webp"] : []),
+            ]),
+          );
       const u = await db.auth.admin.getUserById(id);
       if (u.data?.user?.user_metadata.artist === label) {
         await db.auth.admin.deleteUser(id);

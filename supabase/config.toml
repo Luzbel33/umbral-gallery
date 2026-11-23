@@ -11,3 +11,9 @@ verify_jwt = false
 
 [functions.gallery-voice]
 verify_jwt = false
+
+[edge_runtime]
+policy = "per_worker"
+
+[functions.gallery-public]
+verify_jwt = false

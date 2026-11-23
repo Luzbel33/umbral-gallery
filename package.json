@@ -10,7 +10,7 @@
   },
   "dependencies": {
     "@fontsource-variable/space-grotesk": "5.3.0",
-    "@fontsource/barlow-condensed": "5.3.0",
+    "@fontsource/instrument-serif": "5.3.0",
     "@simplewebauthn/browser": "13.2.2",
     "@supabase/supabase-js": "2.119.2",
     "lucide": "1.78.0",

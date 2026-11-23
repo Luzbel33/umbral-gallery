@@ -1,11 +1,9 @@
 import * as T from "three";
 import { RoomEnvironment } from "three/examples/jsm/environments/RoomEnvironment.js";
 import { art } from "./catalog.js";
-import { readBounded } from "./formats.js";
+import { typeLabels, readBounded } from "./formats.js";
 
-function sculpture(room) {
-  if (room.id === "frecuencia")
-    return new T.TorusKnotGeometry(1.05, 0.25, 180, 18, 2, 3);
+export function sculpture() {
   const points = [],
     indices = [];
   const rings = 150,
@@ -172,17 +170,6 @@ export function furnish(scene, renderer, r, isLive, invalidate) {
     ]),
     dark,
   );
-  repeats(
-    Array.from({ length: 44 }, (_, i) => [
-      -7.65 + i * 0.136,
-      3,
-      -8.76,
-      0.064,
-      5.96,
-      0.15,
-    ]),
-    slats,
-  );
   const glow = new T.MeshBasicMaterial({ color: 0xffecd2 });
   const portal = new T.MeshBasicMaterial({ color: 0xd9fb87 });
   box(5.55, 1.43, -8.76, 1.68, 2.86, 0.18, dark);
@@ -199,20 +186,7 @@ export function furnish(scene, renderer, r, isLive, invalidate) {
     ]),
     glow,
   );
-  // A luminous courtyard gives the window wall depth without transmitting shadows through glass.
-  const landscape = material(0xb7ab93);
-  repeats(
-    Array.from({ length: 17 }, (_, i) => [
-      15 + (i % 3) * 1.7,
-      1.8 + (i % 4) * 0.27,
-      -20 + i * 2.4,
-      3,
-      4 + (i % 4),
-      0.95,
-    ]),
-    landscape,
-  );
-  box(15, -0.17, 0, 18, 0.3, 48, material(0xa19a7c));
+  box(8.24, 3, 0, 0.08, 5.2, 18, new T.MeshBasicMaterial({ color: 0xded5c1 }));
   const sun = new T.DirectionalLight(0xffe6c6, 3.8);
   sun.position.set(12, 9, 4);
   sun.target.position.set(-2, 0, -2);
@@ -230,45 +204,6 @@ export function furnish(scene, renderer, r, isLive, invalidate) {
   sun.shadow.bias = -0.0004;
   scene.add(sun, sun.target, new T.HemisphereLight(0xfff2df, 0x575654, 1.18));
   const blocks = [];
-  if (r.curated) {
-    contactShadow(0, 0.012, -0.84, 6.3, 3.9);
-    box(0, 0.19, -0.85, 3.85, 0.38, 2.35, stone);
-    contactShadow(0, 0.386, -0.85, 3.7, 1.6);
-    blocks.push([-2.15, 2.15, -2.25, 0.55]);
-    if (["orbital", "frecuencia"].includes(r.id)) {
-      const object = new T.Mesh(
-        sculpture(r),
-        material(r.id === "orbital" ? 0xb9824c : 0x304dce, 0.25, 0.84),
-      );
-      object.material.side = T.DoubleSide;
-      object.position.set(0, 2.06, -0.85);
-      object.rotation.set(0.04, -0.33, r.id === "orbital" ? 0.12 : 0.4);
-      object.castShadow = true;
-      scene.add(object);
-    } else if (r.id === "intervalos") {
-      const rust = material(0xb95836, 0.48, 0.45);
-      for (let i = 0; i < 8; i++) {
-        const z = -1.83 + i * 0.26,
-          x = i * 0.05 - 0.2;
-        box(x - 1.1, 1.38, z, 0.11, 2, 0.12, rust);
-        box(x + 1.1, 1.38, z, 0.11, 2, 0.12, rust);
-        box(x, 2.37, z, 2.3, 0.14, 0.12, rust);
-      }
-    } else {
-      for (let i = 0; i < 20; i++) {
-        const b = box(
-          -1.38 + i * 0.14,
-          1.11 + 0.21 * Math.sin(i * 0.46),
-          -0.87,
-          0.105,
-          1.48,
-          1.43,
-          stone,
-        );
-        b.rotation.z = 0.14 * Math.sin(i * 0.2);
-      }
-    }
-  }
   box(4.1, 0.56, 1.8, 1.1, 0.14, 3.9, slats);
   contactShadow(4.1, 0.012, 1.8, 2.1, 5.4);
   box(4.1, 0.26, 0.45, 0.76, 0.52, 0.18, dark);
@@ -287,6 +222,9 @@ export function furnish(scene, renderer, r, isLive, invalidate) {
   const works = r.works.filter((w) => w.ready !== false).slice(0, 8);
   const targets = [],
     models = [],
+    images = [],
+    direction = new T.Vector3(),
+    toward = new T.Vector3(),
     loading = new AbortController();
   works.forEach((w, i) => {
     const [x, z, yaw] = spots[w.slot ? w.slot - 1 : i],
@@ -348,32 +286,69 @@ export function furnish(scene, renderer, r, isLive, invalidate) {
       const g = c.getContext("2d");
       g.fillStyle = w.type === "audio" ? "#253854" : "#713f30";
       g.fillRect(0, 0, c.width, c.height);
-      g.strokeStyle = "#e7ddc3";
-      g.lineWidth = 3;
-      for (let k = 0; k < 50; k++) {
-        const h = 20 + 105 * Math.abs(Math.sin(k * 0.43) * Math.cos(k * 0.093));
-        g.beginPath();
-        g.moveTo(86 + k * 12, 204 - h / 2);
-        g.lineTo(86 + k * 12, 204 + h / 2);
-        g.stroke();
-      }
+      g.fillStyle = "#f2ddbd";
+      g.font = "500 48px sans-serif";
+      g.fillText(typeLabels[w.type], 60, 130, 640);
+      g.fillRect(60, 164, 648, 2);
       g.font = "30px sans-serif";
       g.fillStyle = "#fff";
       g.fillText(w.title, 60, 356, 640);
       install(new T.CanvasTexture(c));
     };
-    if (w.type === "image") loader.load(w.url, install, undefined, placard);
+    if (w.type === "model") {
+      frame.visible = backing.visible = face.visible = false;
+      const center = new T.Vector3(0, -2.2, 1.12)
+        .applyAxisAngle(new T.Vector3(0, 1, 0), yaw)
+        .add(group.position);
+      box(center.x, 0.54, center.z, 1.84, 1.08, 1.84, stone);
+      blocks.push([
+        center.x - 1.12,
+        center.x + 1.12,
+        center.z - 1.12,
+        center.z + 1.12,
+      ]);
+      models.push({ group, work: w, started: false });
+    } else if (w.type === "image")
+      images.push({
+        group,
+        url: w.preview || w.url,
+        install,
+        placard,
+        started: false,
+      });
     else {
       placard();
-      if (w.type === "model") models.push({ group, work: w, started: false });
     }
     targets.push({ group, frame, work: w });
   });
+  let activeImages = 0;
   return {
     blocks,
     targets,
     portal: new T.Vector3(5.55, 1.4, -8.35),
-    approach(position) {
+    approach(position, camera) {
+      camera.getWorldDirection(direction);
+      for (const image of images) {
+        if (activeImages >= 2) break;
+        if (image.started) continue;
+        toward.subVectors(image.group.position, position);
+        if (toward.lengthSq() > 24 && toward.normalize().dot(direction) < 0.28)
+          continue;
+        image.started = true;
+        activeImages++;
+        loader.load(
+          image.url,
+          (tex) => {
+            activeImages--;
+            image.install(tex);
+          },
+          undefined,
+          () => {
+            activeImages--;
+            if (isLive()) image.placard();
+          },
+        );
+      }
       for (const m of models)
         if (!m.started && m.group.position.distanceToSquared(position) < 26) {
           m.started = true;
@@ -392,8 +367,17 @@ export function furnish(scene, renderer, r, isLive, invalidate) {
                 }),
               );
               item.scale.setScalar(0.82);
-              item.position.z = 1.12;
+              item.geometry.computeBoundingBox();
+              item.position.set(
+                0,
+                1.081 -
+                  m.group.position.y -
+                  item.geometry.boundingBox.min.y * 0.82,
+                1.12,
+              );
               m.group.add(item);
+              const target = targets.find((target) => target.work === m.work);
+              if (target) target.frame = item;
               invalidate();
             })
             .catch(() => {});

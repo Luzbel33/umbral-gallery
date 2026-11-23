@@ -1,20 +1,20 @@
 <!doctype html>
-<html lang="es-AR">
+<html lang="en">
   <head>
     <base href="%BASE_URL%" />
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width,initial-scale=1" />
     <meta name="theme-color" content="#111211" />
-    <title>Umbral — Galería de arte virtual</title>
+    <title>Umbral — Virtual art gallery</title>
     <meta
       name="description"
-      content="Explorá arte, música, modelos 3D y proyectos de programación. Visitá el patio o creá una sala gratuita en Umbral desde tu navegador."
+      content="Explore art, music, 3D models and creative code. Visit the atrium or build a free exhibition in your browser."
     />
-    <meta property="og:title" content="Umbral — Galería de arte virtual" />
+    <meta property="og:title" content="Umbral — Virtual art gallery" />
     <meta property="og:type" content="website" />
     <meta
       property="og:description"
-      content="Un espacio abierto para exhibir y recorrer arte desde el navegador."
+      content="An open gallery for exhibiting and exploring art in your browser."
     />
     <meta
       property="og:image"
@@ -26,25 +26,52 @@
     />
     <meta name="twitter:card" content="summary_large_image" />
     <link rel="icon" href="%BASE_URL%favicon.svg" />
-    <link rel="preload" as="image" href="%BASE_URL%art/orbital-wide.webp" />
+    <link
+      rel="preload"
+      as="image"
+      href="%BASE_URL%art/earth-parana_delta_0-preview.webp"
+    />
   </head>
   <body>
-    <a class="skip" href="#main">Ir al contenido</a>
+    <a class="skip" href="#main"
+      ><span data-es="Ir al contenido">Skip to content</span></a
+    >
     <header class="topbar">
       <div class="top-inner">
-        <a class="brand" href="./" aria-label="Umbral, inicio"
+        <a
+          class="brand"
+          href="./"
+          aria-label="Umbral home"
+          data-es-label="Umbral, inicio"
           ><img src="%BASE_URL%favicon.svg" alt="" />UMBRAL</a
         >
-        <nav aria-label="Principal">
-          <a id="explore-link" href="./" class="current">Explorar</a
-          ><a href="?vista=guardadas" id="saved-link">Guardadas</a>
-          <a data-nav href="?sala=patio" id="patio-link">Patio</a>
+        <nav aria-label="Main navigation" data-es-label="Principal">
+          <a id="explore-link" href="./" class="current"
+            ><span data-es="Explorar">Explore</span></a
+          ><a href="?vista=guardadas" id="saved-link"
+            ><span data-es="Guardadas">Saved</span></a
+          >
+          <a data-nav href="?sala=patio" id="patio-link"
+            ><span data-es="Patio">Atrium</span></a
+          >
+          <button
+            id="language-switch"
+            class="plain language-switch"
+            type="button"
+            aria-label="Español"
+            lang="es"
+          >
+            ES
+          </button>
         </nav>
         <div class="account">
-          <button id="signin" class="plain">Ingresar</button
+          <button id="signin" class="plain">
+            <span data-es="Ingresar">Sign in</span></button
           ><button id="studio" class="primary small">
             <span data-icon="plus"></span>
-            <span id="studio-label">Registrarme</span>
+            <span id="studio-label"
+              ><span data-es="Registrarme">Sign up</span></span
+            >
           </button>
         </div>
       </div>
@@ -54,33 +81,52 @@
         <img
           id="hero-image"
           fetchpriority="high"
-          src="%BASE_URL%art/orbital-wide.webp"
-          alt="Escultura de bronce plegado sobre una peana de piedra en la sala Materia orbital"
+          src="%BASE_URL%art/earth-parana_delta_0-preview.webp"
+          alt="Landsat image of the Paraná River Delta, courtesy of USGS EROS"
         />
         <div class="hero-shade"></div>
         <div class="hero-copy">
-          <p class="kicker"><i></i> EXPOSICIÓN DESTACADA</p>
-          <h1 id="hero-title">Materia<br />orbital<span>.</span></h1>
-          <p id="hero-desc">
-            Pliegues de bronce suspendidos entre el peso y el vacío.
+          <p class="kicker">
+            <i></i>
+            <span data-es="EXPOSICIÓN DESTACADA">FEATURED EXHIBITION</span>
           </p>
-          <a id="hero-enter" class="primary" href="?sala=orbital&amp;modo=3d"
-            ><span data-icon="box"></span> Entrar a la sala
-            <span data-icon="arrow"></span
-          ></a>
+          <h1 id="hero-title">Strata <em>of Light</em></h1>
+          <p id="hero-credit" class="hero-credit">USGS EROS</p>
+          <p id="hero-desc">
+            <span
+              data-es="El delta del Paraná, el río Colorado y los Andes vistos desde el espacio. Tres paisajes de la colección Earth As Art."
+              >The Paraná Delta, the Colorado River and the Andes seen from
+              space. Three landscapes from the Earth As Art collection.</span
+            >
+          </p>
+          <div class="hero-actions">
+            <a id="hero-enter" class="primary" href="?sala=estratos&amp;modo=3d"
+              ><span data-icon="box"></span>
+              <span data-es="Recorrer en 3D">Explore in 3D</span>
+              <span data-icon="arrow"></span></a
+            ><a
+              data-nav
+              id="hero-detail"
+              class="hero-detail"
+              href="%BASE_URL%salas/estratos/"
+              ><span data-es="Ver exposición">View exhibition</span> ↗</a
+            >
+          </div>
         </div>
         <div class="hero-pager">
-          <span id="slide-no">01 <em>/ 03</em></span
+          <span id="slide-no">01 <em>/ 04</em></span
           ><button
             data-slide="-1"
             class="round"
-            aria-label="Exposición anterior"
+            aria-label="Previous exhibition"
+            data-es-label="Exposición anterior"
           >
             <span data-icon="left"></span></button
           ><button
             data-slide="1"
             class="round"
-            aria-label="Exposición siguiente"
+            aria-label="Next exhibition"
+            data-es-label="Exposición siguiente"
           >
             <span data-icon="right"></span>
           </button>
@@ -89,41 +135,48 @@
       <section class="catalog" aria-labelledby="catalog-title">
         <div class="section-heading">
           <div>
-            <p class="kicker"><i></i> GALERÍA VIRTUAL</p>
-            <h2 id="catalog-title">Explorar salas</h2>
+            <h2 id="catalog-title">
+              <span data-es="Explorar salas">Explore rooms</span>
+            </h2>
           </div>
-          <button
-            class="filter-toggle"
-            id="filters-toggle"
-            aria-expanded="false"
-            aria-controls="filters"
-          >
-            <span data-icon="layers"></span> Disciplinas
-            <span data-icon="down"></span>
-          </button>
+          <div class="catalog-actions">
+            <button class="exhibit-action" type="button" data-exhibit>
+              <span data-icon="plus"></span>
+              <span data-es="Exponer mi arte">Exhibit my work</span></button
+            ><button
+              class="filter-toggle"
+              id="filters-toggle"
+              aria-expanded="false"
+              aria-controls="filters"
+            >
+              <span data-icon="layers"></span>
+              <span data-es="Disciplinas">Disciplines</span>
+              <span data-icon="down"></span>
+            </button>
+          </div>
         </div>
         <div id="filters" class="filters"></div>
         <div id="cards" class="cards"></div>
         <p class="notice" id="catalog-status" role="status"></p>
-        <button class="secondary more" id="more" hidden>Ver más salas</button>
+        <button class="secondary more" id="more" hidden>
+          <span data-es="Ver más salas">Show more rooms</span>
+        </button>
       </section>
     </main>
     <footer class="shell foot">
       <a href="./" class="brand"
         ><img src="%BASE_URL%favicon.svg" alt="" />UMBRAL</a
-      ><span>Galería de arte abierta</span
+      ><span
+        ><span data-es="Galería de arte abierta">Open art gallery</span></span
       ><a href="https://github.com/Luzbel33/umbral-gallery"
-        >Código abierto ↗</a
+        ><span data-es="Código abierto ↗">Open source ↗</span></a
       >
     </footer>
     <dialog id="panel" aria-labelledby="panel-title">
       <div id="panel-inner"></div>
     </dialog>
     <div id="toast" class="toast" role="status"></div>
-    <noscript
-      >Umbral necesita JavaScript para abrir las salas y recorrerlas en
-      3D.</noscript
-    >
+    <noscript>Enable JavaScript to open rooms and explore them in 3D.</noscript>
     <script type="module" src="/src/main.js"></script>
   </body>
 </html>

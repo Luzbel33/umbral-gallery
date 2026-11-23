@@ -1,4 +1,5 @@
 import { readFile, writeFile, mkdir } from "node:fs/promises";
+import { t } from "../src/i18n.js";
 import { exhibits } from "../src/catalog.js";
 
 const html = await readFile("dist/index.html", "utf8");
@@ -17,7 +18,7 @@ const home = html.match(/<main id="main" class="shell">([\s\S]*?)<\/main>/)[1];
 const links = exhibits
   .map(
     (r) =>
-      `<article class="card"><a class="card-cover" href="${base}salas/${r.id}/"><img alt="" loading="lazy" src="${base}art/${r.id}.webp"></a><h3><a href="${base}salas/${r.id}/">${safe(r.title)}</a></h3></article>`,
+      `<article class="card"><a class="card-cover" href="${base}salas/${r.id}/"><img alt="" loading="lazy" src="${r.thumb || r.cover}"></a><h3><a href="${base}salas/${r.id}/">${safe(r.title)}</a></h3></article>`,
   )
   .join("");
 await writeFile(
@@ -32,8 +33,8 @@ for (const room of exhibits) {
   urls.push(url.href);
   const description = safe(room.description);
   const title = safe(room.title + " — Umbral");
-  const image = new URL("art/" + room.id + ".webp", site);
-  const main = `<section class="detail"><div class="detail-cover"><img src="${base}art/${room.id}.webp" alt="${safe(room.title)}"></div><div class="detail-copy"><p class="kicker">${safe(room.category)}</p><h1>${safe(room.title)}</h1><p>${safe(room.artist)}</p><p>${description}</p><a class="primary" href="${base}?sala=${room.id}&amp;modo=3d">Recorrer en 3D</a></div></section><section class="works"><h2>Obras en sala</h2>${room.works.map((w) => `<p>${safe(w.title)}</p>`).join("")}</section>`;
+  const image = new URL(room.cover.replace(base, ""), site);
+  const main = `<section class="detail"><div class="detail-cover"><img src="${room.cover}" alt="${safe(room.title)}"></div><div class="detail-copy"><p class="kicker">${safe(t(room.category))}</p><h1>${safe(room.title)}</h1><p>${safe(room.artist)}</p><p>${description}</p><a class="primary" href="${base}?sala=${room.id}&amp;modo=3d">Explore in 3D</a></div></section><section class="works"><h2>Works on view</h2>${room.works.map((w) => `<p>${safe(w.title)}</p>`).join("")}</section>`;
   const page = html
     .replace(
       /<title>.*?<\/title>/,
@@ -47,8 +48,8 @@ for (const room of exhibits) {
     .replace(/(property="og:image"\s+content=")[^"]+/, (_, p) => p + image.href)
     .replace(/(property="og:url"\s+content=")[^"]+/, (_, p) => p + url.href)
     .replace(
-      /(<link rel="preload" as="image" href=")[^"]+/,
-      (_, p) => p + base + "art/" + room.id + ".webp",
+      /(<link\s+rel="preload"\s+as="image"\s+href=")[^"]+/,
+      (_, p) => p + room.cover,
     )
     .replace(
       /<main id="main" class="shell">[\s\S]*?<\/main>/,

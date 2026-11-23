@@ -1,35 +1,34 @@
+import { t } from "./i18n.js";
 import { createClient } from "@supabase/supabase-js";
 import { projectUrl, publicKey } from "./config.js";
-import { adaptRoom, pathFor } from "./catalog.js";
+import { summary, objectUrl } from "./public-gallery.js";
+import {
+  summaryFields,
+  roomFields,
+} from "../supabase/functions/_shared/catalog.js";
+import { adaptRoom, pathFor, previewPath } from "./catalog.js";
 import { models, codeExtensions, suffix } from "./formats.js";
 export const client = createClient(projectUrl, publicKey);
 const bucket = client.storage.from("gallery-art");
-const fields =
-  "id,title,artist,description,category,wall_color,finish,music_slot,website,social_url,project_url,published,created_at,works(id,room_id,slot,title,extension,ready,source_name)";
 const unwrap = ({ data, error }) => {
   if (error) throw error;
   return data;
 };
-export async function rooms({ category, ids, offset = 0, limit = 12 } = {}) {
+export async function favoriteRooms({ category, ids, offset = 0, limit = 13 }) {
   let q = client
     .from("gallery_catalog")
-    .select("id,title,artist,category,wall_color,cover_id")
+    .select(summaryFields)
+    .in("id", ids)
     .order("created_at", { ascending: false })
     .order("id");
   if (category) q = q.eq("category", category);
-  if (ids) q = q.in("id", ids);
-  return unwrap(await q.range(offset, offset + limit - 1)).map((r) => ({
-    ...r,
-    cover: r.cover_id
-      ? bucket.getPublicUrl(r.id + "/" + r.cover_id + ".webp").data.publicUrl
-      : null,
-  }));
+  return unwrap(await q.range(offset, offset + limit - 1)).map(summary);
 }
 export async function readRoom(id) {
   const row = unwrap(
-    await client.from("rooms").select(fields).eq("id", id).maybeSingle(),
+    await client.from("rooms").select(roomFields).eq("id", id).maybeSingle(),
   );
-  return row ? adaptRoom(row, bucket) : null;
+  return row ? adaptRoom(row, objectUrl) : null;
 }
 export async function saveRoom(id, values) {
   return unwrap(
@@ -53,7 +52,7 @@ const mediaTypes = {
 };
 async function prepare(file) {
   if (file.size > 12 * 1024 * 1024)
-    throw Error("El máximo es 12 MB por archivo.");
+    throw Error(t("El máximo es 12 MB por archivo."));
   const ext = suffix(file.name);
   if (models.includes(ext)) {
     const { convertMesh } = await import("./mesh.js");
@@ -65,19 +64,19 @@ async function prepare(file) {
   }
   if (codeExtensions.includes(ext)) {
     if (file.size > 524288)
-      throw Error("El máximo para código y texto es de 512 KiB.");
+      throw Error(t("El máximo para código y texto es de 512 KiB."));
     const bytes = new Uint8Array(await file.arrayBuffer());
-    if (bytes.includes(0)) throw Error("Elegí un archivo de texto UTF-8.");
+    if (bytes.includes(0)) throw Error(t("Elegí un archivo de texto UTF-8."));
     try {
       new TextDecoder("utf-8", { fatal: true }).decode(bytes);
     } catch {
-      throw Error("Guardá el texto en UTF-8.");
+      throw Error(t("Guardá el texto en UTF-8."));
     }
     return { blob: file, extension: "txt", mime: "text/plain" };
   }
   if (ext === "pdf") {
     if (!(await file.slice(0, 5).text()).startsWith("%PDF-"))
-      throw Error("El archivo no tiene cabecera PDF.");
+      throw Error(t("El archivo no tiene cabecera PDF."));
     return { blob: file, extension: "pdf", mime: "application/pdf" };
   }
   const other = {
@@ -117,8 +116,26 @@ async function prepare(file) {
         canvas.toBlob(resolve, "image/webp", 0.86),
       );
       if (!blob || blob.type !== "image/webp")
-        throw Error("Este navegador no pudo convertir la imagen.");
-      return { blob, extension: "webp", mime: blob.type };
+        throw Error(t("Este navegador no pudo convertir la imagen."));
+      let preview = null;
+      if (blob.size > 24576) {
+        const scale = Math.min(1, 480 / Math.max(bitmap.width, bitmap.height));
+        canvas.width = Math.max(1, Math.round(bitmap.width * scale));
+        canvas.height = Math.max(1, Math.round(bitmap.height * scale));
+        canvas
+          .getContext("2d")
+          .drawImage(bitmap, 0, 0, canvas.width, canvas.height);
+        const small = await new Promise((resolve) =>
+          canvas.toBlob(resolve, "image/webp", 0.66),
+        );
+        if (
+          small?.type === "image/webp" &&
+          small.size < blob.size &&
+          small.size <= 65536
+        )
+          preview = small;
+      }
+      return { blob, preview, extension: "webp", mime: blob.type };
     } finally {
       bitmap.close();
     }
@@ -126,7 +143,9 @@ async function prepare(file) {
   const extension = mediaTypes[file.type];
   if (!extension)
     throw Error(
-      "Este formato todavía no tiene un visor. Consultá la lista de formatos.",
+      t(
+        "Este formato todavía no tiene un visor. Consultá la lista de formatos.",
+      ),
     );
   const mime =
     extension === "wav"
@@ -137,17 +156,18 @@ async function prepare(file) {
   return { blob: file, extension, mime };
 }
 export async function uploadWork(room, file, title) {
-  const { blob, extension, mime } = await prepare(file);
+  const { blob, preview, extension, mime } = await prepare(file);
   const slot = Array.from({ length: 8 }, (_, i) => i + 1).find(
     (n) => !room.works.some((w) => w.slot === n),
   );
-  if (!slot) throw Error("Tu sala ya tiene ocho obras.");
+  if (!slot) throw Error(t("Tu sala ya tiene ocho obras."));
   const w = {
     id: crypto.randomUUID(),
     room_id: room.id,
     slot,
     title,
     extension,
+    has_preview: !!preview,
     source_name: file.name.slice(-120),
   };
   unwrap(await client.from("works").insert(w));
@@ -158,6 +178,13 @@ export async function uploadWork(room, file, title) {
         cacheControl: "31536000",
       }),
     );
+    if (preview)
+      unwrap(
+        await bucket.upload(previewPath(w), preview, {
+          contentType: "image/webp",
+          cacheControl: "31536000",
+        }),
+      );
     unwrap(
       await client
         .from("works")
@@ -173,7 +200,11 @@ export async function uploadWork(room, file, title) {
   }
 }
 export async function deleteWork(w) {
-  unwrap(await bucket.remove([pathFor(w)]));
+  unwrap(
+    await bucket.remove(
+      w.has_preview ? [pathFor(w), previewPath(w)] : [pathFor(w)],
+    ),
+  );
   unwrap(
     await client.from("works").delete().eq("id", w.id).select("id").single(),
   );

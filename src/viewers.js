@@ -1,3 +1,4 @@
+import {t} from "./i18n.js";
 import { $, esc, dialog, panel, media, failure } from "./ui.js";
 import { readBounded, suffix, typeLabels } from "./formats.js";
 import { icon } from "./icons.js";
@@ -27,11 +28,11 @@ function tableRows(text, sep) {
 }
 function showText(el, bytes, file) {
   let text = new TextDecoder("utf-8", { fatal: true }).decode(bytes);
-  if (text.includes("\0")) throw Error("El visor necesita texto UTF-8.");
+  if (text.includes("\0")) throw Error(t("El visor necesita texto UTF-8."));
   const ext = suffix(file);
   if (ext === "csv" || ext === "tsv") {
     const rows = tableRows(text, ext === "csv" ? "," : "\t");
-    el.innerHTML = `<div class="table-scroll"><table>${rows.map((r, i) => "<tr>" + r.map((s) => (i ? "<td>" + esc(s) + "</td>" : "<th>" + esc(s) + "</th>")).join("") + "</tr>").join("")}</table></div><small>Vista de hasta 100 filas y 30 columnas.</small>`;
+    el.innerHTML = `<div class="table-scroll"><table>${rows.map((r, i) => "<tr>" + r.map((s) => (i ? "<td>" + esc(s) + "</td>" : "<th>" + esc(s) + "</th>")).join("") + "</tr>").join("")}</table></div><small>${t("Vista de hasta 100 filas y 30 columnas.")}</small>`;
     return;
   }
   if (ext === "json" || ext === "ipynb") {
@@ -43,7 +44,7 @@ function showText(el, bytes, file) {
               .slice(0, 150)
               .map(
                 (c) =>
-                  (c.cell_type === "code" ? "Código" : "Texto") +
+                  (c.cell_type === "code" ? t("Código") : t("Texto")) +
                   "\n" +
                   (Array.isArray(c.source)
                     ? c.source.join("")
@@ -55,14 +56,14 @@ function showText(el, bytes, file) {
   }
   el.innerHTML = "<pre tabindex='0'></pre>";
   $("pre", el).textContent =
-    text.slice(0, 180000) + (text.length > 180000 ? "\n… Vista abreviada" : "");
+    text.slice(0, 180000) + (text.length > 180000 ? "\n… "+t("Vista abreviada") : "");
 }
 let cancel = null;
 export async function openPiece(w) {
   cancel?.();
   panel(
     w.title,
-    `<div class="file-view" id="file-view"><p role="status">Abriendo ${esc(typeLabels[w.type] || "obra")}…</p></div>`,
+    `<div class="file-view" id="file-view"><p role="status">${t("Abriendo")} ${esc(typeLabels[w.type] || t("obra"))}…</p></div>`,
     "viewer",
   );
   const el = $("#file-view"),
@@ -114,7 +115,7 @@ export async function openPiece(w) {
       };
       const doc = await task.promise;
       if (controller.signal.aborted) return;
-      el.innerHTML = `<div class="pdf-bar"><button class="secondary" data-prev aria-label="Página anterior">${icon("left")}</button><span role="status"></span><button class="secondary" data-next aria-label="Página siguiente">${icon("right")}</button></div><canvas aria-label="Página del PDF"></canvas>`;
+      el.innerHTML = `<div class="pdf-bar"><button class="secondary" data-prev aria-label="${t("Página anterior")}">${icon("left")}</button><span role="status"></span><button class="secondary" data-next aria-label="${t("Página siguiente")}">${icon("right")}</button></div><canvas aria-label="${t("Página del PDF")}"></canvas>`;
       let num = 1;
       const prev = $("[data-prev]", el),
         next = $("[data-next]", el);

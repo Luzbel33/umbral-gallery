@@ -1,9 +1,10 @@
+import {t} from "./i18n.js";
 import { Matrix4, Quaternion, Vector3 } from "three";
 const maxFaces = 60000,
   palette = [0.67, 0.75, 0.56];
 const bad = () => {
   throw Error(
-    "Modelo incompatible. Usá una malla estática de hasta 60.000 triángulos, con sus datos incluidos en el archivo.",
+    t("Modelo incompatible. Usá una malla estática de hasta 60.000 triángulos, con sus datos incluidos en el archivo."),
   );
 };
 function collector() {

@@ -1,3 +1,4 @@
+import { t } from "./i18n.js";
 import { icon } from "./icons.js";
 export const esc = (v) =>
   String(v ?? "").replace(
@@ -10,10 +11,11 @@ export const esc = (v) =>
 export const $ = (s, p = document) => p.querySelector(s);
 export const dialog = $("#panel");
 export function panel(title, body, kind = "") {
+  if (document.pointerLockElement) document.exitPointerLock();
   pauseMedia();
   dialog.className = kind;
   $("#panel-inner").innerHTML =
-    `<div class="panel-heading"><h2 id="panel-title">${esc(title)}</h2><button class="round" data-close aria-label="Cerrar">${icon("close")}</button></div>${body}`;
+    `<div class="panel-heading"><h2 id="panel-title">${esc(title)}</h2><button class="round" data-close aria-label="${t("Cerrar")}">${icon("close")}</button></div>${body}`;
   if (!dialog.open) dialog.showModal();
 }
 export function pauseMedia() {
@@ -28,13 +30,13 @@ export function toast(message) {
 }
 export function failure(e) {
   if (e?.name === "NotAllowedError" || e?.code === "ERROR_CEREMONY_ABORTED")
-    return "Se canceló la llave de acceso. Podés volver a intentarlo.";
-  return e?.message || "No se pudo completar. Volvé a intentarlo.";
+    return t("Se canceló la llave de acceso. Podés volver a intentarlo.");
+  return t(e?.message) || t("No se pudo completar. Volvé a intentarlo.");
 }
-export function media(w) {
+export function media(w, thumbnail = false) {
   if (!["image", "audio", "video"].includes(w.type)) return "";
   if (w.type === "image")
-    return `<img class="piece-image" src="${esc(w.url)}" alt="${esc(w.title)}" loading="lazy" decoding="async">`;
+    return `<img class="piece-image" src="${esc((thumbnail && w.preview) || w.url)}" alt="${esc(w.title)}" loading="lazy" decoding="async">`;
   return `<${w.type} controls preload="none" ${w.type === "video" ? "playsinline" : ""} src="${esc(w.url)}" aria-label="${esc(w.title)}"></${w.type}>`;
 }
 export function fallback(r) {

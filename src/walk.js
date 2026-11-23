@@ -1,5 +1,9 @@
+import { t } from "./i18n.js";
 import { bindJoystick } from "./joystick.js";
 import * as T from "three";
+import { lightDust } from "./atmosphere.js";
+import { exhibition } from "./inaugural.js";
+import { profile, credit } from "./profile.js";
 import { furnish } from "./architecture.js";
 import { courtyard } from "./courtyard.js";
 import { icon } from "./icons.js";
@@ -7,28 +11,32 @@ import { $, esc, dialog, panel, toast, failure } from "./ui.js";
 import "./walk.css";
 export function enterWalk(room, { exit, openPiece, login }) {
   const main = $("#main");
+  const economical =
+    (navigator.deviceMemory || 8) <= 4 ||
+    (navigator.hardwareConcurrency || 8) <= 4 ||
+    !!navigator.connection?.saveData;
   const renderer = new T.WebGLRenderer({
-    antialias: true,
+    antialias: !economical,
     powerPreference: "high-performance",
   });
   document.body.classList.add("walking");
-  main.innerHTML = `<section id="walk" aria-label="Recorrido 3D de ${esc(room.title)}"><div id="viewport" tabindex="0" aria-label="Moverse con WASD o flechas. Arrastrar para mirar."></div>
-    <div class="walk-top"><button id="leave" class="hud-btn">${icon("back")} <span>Modo web</span></button><div class="walk-title">${esc(room.title)}<small>${esc(room.artist)}</small></div><button class="hud-btn" id="visits" aria-pressed="false">${icon("users")} <span>Caminar en compañía</span></button>
-    ${room.music ? `<button class="hud-btn" id="sound" aria-label="Activar música" aria-pressed="false">${icon("mute")}</button>` : ""}<button class="hud-btn" id="help" aria-label="Controles de movimiento">${icon("help")}</button></div>
-    <div class="walk-bottom"><div class="walk-hint">${icon("move", 15)} WASD o flechas <b>·</b> Arrastrá para mirar</div><button id="inspect" class="primary" hidden>${icon("eye")} Ver obra</button></div>
-    <div class="joystick" role="group" aria-label="Joystick de movimiento"><span></span></div>
+  main.innerHTML = `<section id="walk" aria-label="${t("Recorrido 3D de")} ${esc(room.title)}"><div id="viewport" tabindex="0" aria-label="${t("WASD o flechas")}"></div>
+    <div class="walk-top"><button id="leave" class="hud-btn">${icon("back")} <span>${t("Modo web")}</span></button><div class="walk-title">${esc(room.title)}<small>${esc(room.artist)}</small></div><button class="hud-btn" id="artist-card">${icon(room.id === "patio" ? "headphones" : "user")} <span>${t(room.id === "patio" ? "Música y créditos" : "Ficha del artista")}</span></button><button class="hud-btn" id="visits" aria-pressed="false">${icon("users")} <span>${t("Caminar en compañía")}</span></button>
+    ${room.music ? `<button class="hud-btn" id="sound" aria-label="${t("Activar música")}" aria-pressed="false">${icon("mute")} <span>${t("Música")}</span></button>` : ""}<button class="hud-btn" id="help" aria-label="${t("Controles de movimiento")}">${icon("help")}</button></div>
+    <div class="walk-bottom"><div class="walk-hint">${icon("move", 15)} ${t("WASD o flechas")} <b>·</b> ${t("Mové el mouse para mirar")}</div><button id="free-look" class="hud-btn">${icon("scan")} ${t("Mirar sin bordes")}</button><button id="inspect" class="primary" hidden>${icon("eye")} ${t("Ver obra")}</button></div>
+    <div class="joystick" role="group" aria-label="${t("Joystick de movimiento")}"><span></span></div>
     </section>`;
   const state = new AbortController(),
     listen = (el, type, fn, opts = {}) =>
       el.addEventListener(type, fn, { ...opts, signal: state.signal });
   const view = $("#viewport");
   view.append(renderer.domElement);
-  renderer.setPixelRatio(
-    Math.min(
-      devicePixelRatio,
-      matchMedia("(pointer:coarse)").matches ? 1.35 : 1.75,
-    ),
+  const maxRatio = Math.min(
+    devicePixelRatio,
+    economical ? 1 : matchMedia("(pointer:coarse)").matches ? 1.35 : 1.75,
   );
+  let scale = maxRatio;
+  renderer.setPixelRatio(scale);
   renderer.shadowMap.enabled = true;
   renderer.shadowMap.type = T.PCFShadowMap;
   renderer.shadowMap.autoUpdate = false;
@@ -59,15 +67,81 @@ export function enterWalk(room, { exit, openPiece, login }) {
     drawnRotation = new T.Quaternion();
   const world =
       room.id === "patio"
-        ? courtyard(scene, renderer, invalidate)
-        : furnish(scene, renderer, room, () => live, invalidate),
+        ? courtyard(scene, renderer, invalidate, economical)
+        : room.curated
+          ? exhibition(scene, renderer, camera, room, invalidate)
+          : furnish(scene, renderer, room, () => live, invalidate),
     keys = new Set(),
     ray = new T.Raycaster(),
     point = new T.Vector2();
+  const reducedMotion = matchMedia("(prefers-reduced-motion: reduce)");
+  let dust =
+    !economical &&
+    !reducedMotion.matches &&
+    (room.curated || room.id === "patio")
+      ? lightDust(scene, room.id)
+      : null;
+  let slowFrames = 0,
+    previousRender = 0;
+  if (world.ready) {
+    const loading = document.createElement("div");
+    loading.className = "scene-loading";
+    loading.setAttribute("role", "status");
+    loading.textContent = t("Abriendo sala…");
+    view.after(loading);
+    world.ready.then(
+      () => loading.remove(),
+      () => {
+        if (live) {
+          exit();
+          toast(t("Se interrumpió el 3D. Podés seguir en modo web."));
+        }
+      },
+    );
+  }
+  $("#artist-card").onclick = () => {
+    if (music && !music.paused) $("#sound")?.click();
+    const works = room.works.filter((w) => w.ready !== false);
+    panel(
+      t(room.id === "patio" ? "Música y créditos" : "Obras y contacto"),
+      (room.id === "patio" ? credit(room.recording) : profile(room)) +
+        (works.length
+          ? `<section class="artist-index"><h3>${t("Obras en sala")}</h3>${works.map((w, i) => `<button class="destination" data-piece="${i}"><span>${esc(w.title)}</span>${icon("arrow", 16)}</button>`).join("")}</section>`
+          : ""),
+    );
+  };
+  const experience =
+    room.id === "intervalos" ? document.createElement("button") : null;
+  if (experience) {
+    experience.className = "primary film-control";
+    experience.setAttribute("aria-pressed", "false");
+    experience.innerHTML = icon("video") + " " + t("Ver la proyección");
+    $("#inspect").before(experience);
+    experience.onclick = async () => {
+      try {
+        const playing = await world.toggleFilm();
+        experience.setAttribute("aria-pressed", String(playing));
+        experience.innerHTML =
+          icon("video") +
+          " " +
+          t(playing ? "Pausar proyección" : "Ver la proyección");
+      } catch (e) {
+        toast(failure(e));
+      }
+    };
+  }
+  function present(work) {
+    if (work.type === "video" && experience) {
+      experience.click();
+      return;
+    }
+    if (work.type === "audio" && music && !music.paused) $("#sound")?.click();
+    openPiece(work);
+  }
   const doors = document.createElement("button");
   doors.className = "hud-btn";
-  doors.setAttribute("aria-label", "Cambiar de sala");
-  doors.innerHTML = icon("compass");
+  doors.setAttribute("aria-label", t("Cambiar de sala"));
+  doors.innerHTML = icon("compass") + `<span>${t("Salas")}</span>`;
   $("#help").before(doors);
   const changeRoom = async () => {
     try {
@@ -80,13 +154,13 @@ export function enterWalk(room, { exit, openPiece, login }) {
   doors.onclick = changeRoom;
   const chat = document.createElement("button");
   chat.className = "hud-btn";
-  chat.textContent = "Charla";
+  chat.textContent = t("Charla");
   chat.hidden = true;
   $("#help").before(chat);
   chat.onclick = () => {
     if (!social) return;
     panel(
-      "Conversación del grupo",
+      t("Conversación del grupo"),
       '<div class="conversation" id="walk-chat"></div>',
     );
     social.mount($("#walk-chat"), login);
@@ -94,6 +168,14 @@ export function enterWalk(room, { exit, openPiece, login }) {
   };
   let atDoor = false;
   const resize = () => {
+    scale = Math.min(
+      scale,
+      Math.sqrt(
+        (economical ? 900000 : 2000000) /
+          Math.max(1, view.clientWidth * view.clientHeight),
+      ),
+    );
+    renderer.setPixelRatio(scale);
     renderer.setSize(view.clientWidth, view.clientHeight, false);
     camera.aspect = view.clientWidth / Math.max(view.clientHeight, 1);
     camera.updateProjectionMatrix();
@@ -115,7 +197,7 @@ export function enterWalk(room, { exit, openPiece, login }) {
   function inspect(mode, event) {
     if (mode === "nearest") {
       if (atDoor) void changeRoom();
-      else if (near) openPiece(near.work);
+      else if (near) present(near.work);
       return;
     }
     const rect = view.getBoundingClientRect();
@@ -123,30 +205,66 @@ export function enterWalk(room, { exit, openPiece, login }) {
       ((event.clientX - rect.left) / rect.width) * 2 - 1,
       (-(event.clientY - rect.top) / rect.height) * 2 + 1,
     );
+    if (document.pointerLockElement === view) point.set(0, 0);
     ray.setFromCamera(point, camera);
     const hit = ray.intersectObjects(world.targets.map((t) => t.frame))[0];
     const target = world.targets.find((t) => t.frame === hit?.object);
-    if (target) openPiece(target.work);
+    if (target) present(target.work);
   }
   listen(view, "pointerdown", (e) => {
     if (e.button !== 0 || drag) return;
-    view.setPointerCapture(e.pointerId);
+    if (e.pointerType !== "mouse") view.setPointerCapture(e.pointerId);
     view.focus();
     drag = { id: e.pointerId, x: e.clientX, y: e.clientY, dist: 0 };
   });
-  listen(view, "pointermove", (e) => {
-    if (!drag || e.pointerId !== drag.id) return;
-    const dx = e.clientX - drag.x,
-      dy = e.clientY - drag.y;
-    drag.x = e.clientX;
-    drag.y = e.clientY;
-    drag.dist += Math.abs(dx) + Math.abs(dy);
-    camera.rotation.y -= dx * 0.005;
+  function look(dx, dy) {
+    camera.rotation.y -= dx * 0.0035;
     camera.rotation.x = T.MathUtils.clamp(
-      camera.rotation.x - dy * 0.004,
-      -1.15,
-      1.15,
+      camera.rotation.x - dy * 0.003,
+      -1.2,
+      1.2,
     );
+  }
+  let hover = null;
+  listen(view, "pointerenter", () => {
+    hover = null;
+  });
+  listen(view, "pointerleave", () => {
+    hover = null;
+    if (drag?.mouse) drag = null;
+  });
+  listen(view, "pointermove", (e) => {
+    if (dialog.open || document.pointerLockElement === view) return;
+    if (e.pointerType === "mouse") {
+      if (hover) look(e.clientX - hover.x, e.clientY - hover.y);
+      hover = { x: e.clientX, y: e.clientY };
+    }
+    if (drag?.id === e.pointerId) {
+      const dx = e.clientX - drag.x,
+        dy = e.clientY - drag.y;
+      drag.dist += Math.abs(dx) + Math.abs(dy);
+      drag.x = e.clientX;
+      drag.y = e.clientY;
+      drag.mouse = e.pointerType === "mouse";
+      if (!drag.mouse) look(dx, dy);
+    }
+  });
+  listen(document, "mousemove", (e) => {
+    if (!dialog.open && document.pointerLockElement === view)
+      look(e.movementX, e.movementY);
+  });
+  const lock = $("#free-look");
+  lock.hidden = !view.requestPointerLock;
+  lock.onclick = async () => {
+    try {
+      await view.requestPointerLock();
+    } catch {
+      toast(t("Mové el mouse para mirar"));
+    }
+  };
+  listen(document, "pointerlockchange", () => {
+    $("#walk").classList.toggle("locked", document.pointerLockElement === view);
+    hover = null;
   });
   listen(view, "pointerup", (e) => {
     if (drag?.id !== e.pointerId) return;
@@ -179,8 +297,8 @@ export function enterWalk(room, { exit, openPiece, login }) {
   $("#leave").onclick = exit;
   $("#help").onclick = () =>
     panel(
-      "Cómo recorrer la sala",
-      "<p>Usá W y S para avanzar o retroceder, A y D para desplazarte de lado, y las flechas laterales para girar. Arrastrá para mirar alrededor. Tocá una obra, o acercate y presioná E para abrirla. En el celular, mové el joystick con el pulgar izquierdo. Arrastrá con el derecho para mirar mientras caminás.</p>",
+      t("Cómo recorrer la sala"),
+      `<p>${t("En PC, mové el mouse para mirar y usá WASD para caminar. Podés activar la vista libre para girar sin llegar al borde de la pantalla. Escape libera el cursor. En el celular, usá el joystick izquierdo y mirá arrastrando con el otro pulgar. Tocá una obra para abrirla.")}</p>`,
     );
   $("#visits").onclick = async () => {
     if (socialPending) return;
@@ -191,7 +309,7 @@ export function enterWalk(room, { exit, openPiece, login }) {
       chat.hidden = true;
       invalidate();
       b.setAttribute("aria-pressed", "false");
-      $("span", b).textContent = "Caminar en compañía";
+      $("span", b).textContent = t("Caminar en compañía");
       return;
     }
     socialPending = true;
@@ -199,7 +317,7 @@ export function enterWalk(room, { exit, openPiece, login }) {
     try {
       const { joinVisitors } = await import("./social.js");
       if (!live) return;
-      $("span", b).textContent = "Conectando…";
+      $("span", b).textContent = t("Conectando…");
       b.setAttribute("aria-pressed", "true");
       const session = await joinVisitors(
         room.id,
@@ -215,7 +333,7 @@ export function enterWalk(room, { exit, openPiece, login }) {
           invalidate();
           if (live) {
             b.setAttribute("aria-pressed", "false");
-            $("span", b).textContent = "Volver a conectar";
+            $("span", b).textContent = t("Volver a conectar");
           }
         },
       );
@@ -226,7 +344,7 @@ export function enterWalk(room, { exit, openPiece, login }) {
       }
     } catch (e) {
       b.setAttribute("aria-pressed", "false");
-      $("span", b).textContent = "Caminar en compañía";
+      $("span", b).textContent = t("Caminar en compañía");
       toast(failure(e));
     } finally {
       socialPending = false;
@@ -243,17 +361,17 @@ export function enterWalk(room, { exit, openPiece, login }) {
       }
       if (!music.paused) {
         music.pause();
-        b.innerHTML = icon("mute");
-        b.setAttribute("aria-label", "Activar música");
+        b.innerHTML = icon("mute") + `<span>${t("Música")}</span>`;
+        b.setAttribute("aria-label", t("Activar música"));
         b.setAttribute("aria-pressed", "false");
       } else
         try {
           await music.play();
-          b.innerHTML = icon("volume");
-          b.setAttribute("aria-label", "Silenciar música");
+          b.innerHTML = icon("volume") + `<span>${t("Música")}</span>`;
+          b.setAttribute("aria-label", t("Silenciar música"));
           b.setAttribute("aria-pressed", "true");
         } catch {
-          toast("El navegador no pudo reproducir esta pista.");
+          toast(t("El navegador no pudo reproducir esta pista."));
         }
     };
   function draw(time) {
@@ -277,23 +395,59 @@ export function enterWalk(room, { exit, openPiece, login }) {
         z = p.z + (-f * Math.cos(a) - s * Math.sin(a)) * speed;
       if (canMove(x, p.z)) p.x = x;
       if (canMove(p.x, z)) p.z = z;
-      world.approach?.(p);
-      near = world.targets.find((t) => t.group.position.distanceTo(p) < 3.8);
+      world.approach?.(p, camera);
+      near = null;
+      let distance = 3.8 * 3.8;
+      for (const target of world.targets) {
+        const d = target.group.position.distanceToSquared(p);
+        if (d < distance) {
+          distance = d;
+          near = target;
+        }
+      }
       const closeToDoor = world.portal.distanceTo(p) < 2.4;
       if (closeToDoor !== atDoor) {
         atDoor = closeToDoor;
         $("#inspect").innerHTML = atDoor
-          ? icon("compass") + " Cambiar sala"
-          : icon("eye") + " Ver obra";
+          ? icon("compass") + ` ${t("Cambiar sala")}`
+          : icon("eye") + ` ${t("Ver obra")}`;
       }
       $("#inspect").hidden = !near && !atDoor;
       const peersMoved = social?.tick(time, dt);
+      const recordMoved =
+        !reducedMotion.matches &&
+        world.rotateRecord?.(music && !music.paused ? music.currentTime : null);
+      const atmosphereMoved = !reducedMotion.matches && dust?.tick(time);
       if (
+        recordMoved ||
+        atmosphereMoved ||
         dirty ||
         peersMoved ||
+        world.animating?.() ||
         !drawnPosition.equals(camera.position) ||
         !drawnRotation.equals(camera.quaternion)
       ) {
+        // Measure contiguous moving frames, excluding idle intervals and tab suspension.
+        const moving =
+          !drawnPosition.equals(camera.position) ||
+          !drawnRotation.equals(camera.quaternion);
+        const elapsed = time - previousRender;
+        if (moving && previousRender && elapsed < 250) {
+          slowFrames =
+            elapsed > 39 ? slowFrames + 1 : Math.max(0, slowFrames - 2);
+          if (slowFrames >= 12) {
+            const next = Math.max(Math.min(scale, 0.6), scale * 0.78);
+            if (next < scale) {
+              scale = next;
+              renderer.setPixelRatio(scale);
+            }
+            dust?.dispose();
+            dust = null;
+            slowFrames = 0;
+          }
+        }
+        previousRender = moving ? time : 0;
+        if (atmosphereMoved) world.waterTime?.(time);
         renderer.render(scene, camera);
         drawnPosition.copy(camera.position);
         drawnRotation.copy(camera.quaternion);
@@ -316,17 +470,19 @@ export function enterWalk(room, { exit, openPiece, login }) {
   listen(renderer.domElement, "webglcontextlost", (e) => {
     e.preventDefault();
     exit();
-    toast("Se interrumpió el 3D. Podés seguir en modo web.");
+    toast(t("Se interrumpió el 3D. Podés seguir en modo web."));
   });
   view.focus();
   frame = requestAnimationFrame(draw);
   return () => {
     live = false;
+    if (document.pointerLockElement === view) document.exitPointerLock();
     state.abort();
     observer.disconnect();
     cancelAnimationFrame(frame);
     social?.dispose();
     music?.pause();
+    dust?.dispose();
     world.dispose();
     renderer.dispose();
     renderer.forceContextLoss();

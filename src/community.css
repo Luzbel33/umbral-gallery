@@ -246,3 +246,65 @@ dialog details p {
     min-height: 44px;
   }
 }
+.artist-profile,
+.patio-music {
+  border-block: 1px solid var(--line);
+  padding: clamp(18px, 3vw, 38px) 0;
+  margin: 22px 0;
+}
+.artist-profile p {
+  max-width: 65ch;
+  line-height: 1.55;
+  color: var(--muted);
+}
+.artist-heading,
+.record-credit {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.artist-heading small {
+  font-size: 0.76rem;
+  color: var(--muted);
+}
+.artist-heading h2 {
+  margin: 2px 0;
+  font-size: 1.5rem;
+}
+.record-credit {
+  font-size: 0.85rem;
+  line-height: 1.5;
+  color: var(--muted);
+  margin: 20px 0 0;
+}
+.record-credit a {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.patio-music audio {
+  width: min(100%, 420px);
+  margin-top: 14px;
+}
+#panel .artist-profile {
+  margin: 0;
+  padding: 12px 0 20px;
+}
+fieldset.studio-links {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 12px;
+  min-width: 0;
+}
+.language-switch {
+  font-size: 12px;
+  border: 1px solid var(--line);
+  border-radius: 5px;
+  padding: 4px 8px;
+  line-height: 1.4;
+}
+@media (max-width: 650px) {
+  .language-switch {
+    padding: 4px;
+    font-size: 11px;
+  }
+}

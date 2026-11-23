@@ -1,3 +1,4 @@
+import { t } from "./i18n.js";
 const root = import.meta.env?.BASE_URL || "/umbral-gallery/";
 export const art = (name) => root + "art/" + name;
 const entries = [
@@ -13,7 +14,7 @@ const entries = [
     "frecuencia",
     "Frecuencia azul",
     "Música",
-    "Una sala de escucha donde cada curva sigue la resonancia de un acorde.",
+    "Una cabina de escucha de nogal y fieltro azul, dedicada al piano y las texturas de Chris Zabriskie.",
     "#465795",
     "Basalto",
   ],
@@ -21,7 +22,7 @@ const entries = [
     "intervalos",
     "Intervalos",
     "Video",
-    "Un recorrido en movimiento por una sucesión de portales de óxido.",
+    "Una microcinemateca de terciopelo oscuro para un estudio de movimiento y luz.",
     "#ad543a",
     "Basalto",
   ],
@@ -29,70 +30,97 @@ const entries = [
     "estratos",
     "Estratos de luz",
     "Fotografía",
-    "Un ensayo fotográfico virtual sobre el ritmo de la piedra y el paso de la luz.",
+    "El delta del Paraná, el río Colorado y los Andes vistos desde el espacio. Tres paisajes de la colección Earth As Art.",
     "#c8ab88",
     "Madera",
   ],
 ];
-const work = (title, type, file) => ({ title, type, url: art(file) });
+export const recordings = {
+  five: { title: "Cylinder Five", url: art("cylinder-05.mp3") },
+  six: { title: "Cylinder Six", url: art("cylinder-06.mp3") },
+};
+const work = (title, type, file) => ({
+  title: t(title),
+  type,
+  url: art(file),
+  ...(file.startsWith("earth-")
+    ? { preview: art(file.replace(".webp", "-preview.webp")) }
+    : {}),
+});
 const collections = [
   [
     work("Materia orbital · Vista frontal", "image", "orbital.webp"),
     work("El espacio entre los pliegues", "image", "orbital-wide.webp"),
   ],
-  [
-    work("Onda continua", "audio", "onda.mp3"),
-    work("Frecuencia azul · Estudio de forma", "image", "frecuencia.webp"),
-  ],
+  [{ ...recordings.five, type: "audio" }],
   [
     work("Tránsito", "video", "transito.mp4"),
     work("Intervalos · Fotograma", "image", "intervalos.webp"),
   ],
-  [work("Estratos de luz", "image", "estratos.webp")],
+  [
+    work("Delta del Paraná", "image", "earth-parana_delta_0.webp"),
+    work("Sabotage", "image", "earth-sabotage.webp"),
+    work("Andes", "image", "earth-andes_0.webp"),
+  ],
 ];
 export const exhibits = entries.map(
   ([id, title, category, description, wall_color, finish], i) => ({
     id,
-    title,
+    title: t(title),
     category,
-    description,
+    description: t(description),
     wall_color,
     finish,
-    artist: "Estudio Umbral",
-    cover: art(id + ".webp"),
-    hero: art((i === 0 ? "orbital-wide" : id) + ".webp"),
+    artist:
+      i === 1 ? "Chris Zabriskie" : i === 3 ? "USGS EROS" : t("Estudio Umbral"),
+    artist_bio: t(
+      i === 1
+        ? "Chris Zabriskie escribió, produjo e interpretó Cylinders (2014). Esta sala de escucha fue diseñada por Umbral para presentar su grabación."
+        : i === 3
+          ? "Earth As Art reúne imágenes satelitales del USGS. Esta selección recorre Argentina y Chile con los sensores Landsat y ASTER."
+          : "Arquitectura virtual, imágenes y exposiciones creadas para la colección inaugural de Umbral.",
+    ),
+    website:
+      i === 1
+        ? "https://chriszabriskie.com/"
+        : i === 3
+          ? "https://www.usgs.gov/centers/eros/earth-art"
+          : "https://luzbel33.github.io/umbral-gallery/",
+    project_url:
+      i === 1
+        ? "https://chriszabriskie.bandcamp.com/album/cylinders"
+        : i === 3
+          ? "https://www.usgs.gov/media/images/parana-river-delta"
+          : "https://github.com/Luzbel33/umbral-gallery",
+    social_url: i === 1 ? "https://www.instagram.com/chriszabriskie/" : null,
+    thumb: art("thumb-" + id + ".webp"),
+    cover: art((i === 0 ? id : "cover-" + id) + ".webp"),
+    hero: art((i === 0 ? "orbital-wide" : "cover-" + id) + ".webp"),
     works: collections[i],
     curated: true,
-    music: i === 1 ? art("onda.mp3") : null,
+    music: i === 1 ? recordings.five.url : null,
+    recording: i === 1 ? recordings.five : null,
     published: true,
   }),
 );
-export const categories = [
-  "Escultura",
-  "Fotografía",
-  "Música",
-  "Video",
-  "Pintura",
-  "Digital",
-  "Programación",
-  "Diseño",
-  "Literatura",
-  "Multidisciplinaria",
-];
+export { disciplines as categories } from "../supabase/functions/_shared/catalog.js";
+export const previewPath = (w) => w.room_id + "/" + w.id + ".preview.webp";
 export const pathFor = (w) => w.room_id + "/" + w.id + "." + w.extension;
-export function adaptRoom(r, storage) {
+export function adaptRoom(r, objectUrl) {
   const works = (r.works || [])
     .sort((a, b) => a.slot - b.slot)
     .map((w) => ({
       ...w,
+      preview: w.has_preview ? objectUrl(previewPath(w)) : null,
       type: workType(w.extension),
-      url: storage.getPublicUrl(pathFor(w)).data.publicUrl,
+      url: objectUrl(pathFor(w)),
     }));
   const ready = works.filter((w) => w.ready);
+  const coverWork = ready.find((w) => w.type === "image");
   return {
     ...r,
     works,
-    cover: ready.find((w) => w.type === "image")?.url,
+    cover: coverWork?.preview || coverWork?.url,
     music: ready.find((w) => w.slot === r.music_slot && w.type === "audio")
       ?.url,
   };
