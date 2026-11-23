@@ -6,10 +6,34 @@ import { createClient } from "@supabase/supabase-js";
 import { publicKey } from "../src/config.js";
 import { localStack, serveStage } from "./staging.mjs";
 
+import { checkPlayback } from "./public-playback.mjs";
+import { stat } from "node:fs/promises";
+
+const activeStorage = process.argv.includes("--active-storage");
+const independent = process.argv.includes("--independent");
 const deployed = process.argv.includes("--deployed");
 const site = deployed
   ? "https://luzbel33.github.io/umbral-gallery/"
   : "http://localhost:5184/umbral-gallery/";
+if (independent && !deployed) throw Error("Independent visitors require a hosted public room");
+
+async function independentVisitor(id) {
+  const repo = "Luzbel33/umbral-gallery";
+  const gh = (...args) => execFileSync("gh", args, { encoding: "utf8" });
+  gh("workflow", "run", "public-playback.yml", "--repo", repo, "--ref", "main", "-f", "room=" + id);
+  for (let i = 0; i < 36; i++) {
+    const runs = JSON.parse(gh("run", "list", "--repo", repo, "--workflow", "public-playback.yml",
+      "--limit", "20", "--json", "databaseId,displayTitle"));
+    const run = runs.find((r) => r.displayTitle === "Public playback " + id);
+    if (run) {
+      console.log("Independent signed-out browser check: https://github.com/" + repo + "/actions/runs/" + run.databaseId);
+      execFileSync("gh", ["run", "watch", String(run.databaseId), "--repo", repo, "--exit-status", "--compact", "--interval", "10"], { stdio: ["ignore", "ignore", "inherit"], timeout: 15 * 60 * 1000 });
+      return;
+    }
+    await new Promise((ok) => setTimeout(ok, 2000));
+  }
+  throw Error("Could not locate the dispatched public visitor check");
+}
 const ref = "mlmhtoejxkoczykvahlh";
 const server = deployed ? null : await serveStage();
 function adminClient() {
@@ -70,16 +94,19 @@ try {
         ),
       );
       id = session.user.id;
-      const probe = await admin.rpc("probe_gallery_media", { owner_key: id });
-      if (probe.error) throw probe.error;
+      if (!activeStorage) {
+        const probe = await admin.rpc("probe_gallery_media", { owner_key: id });
+        if (probe.error) throw probe.error;
+      }
       await p.locator("#studio").click();
       await p.locator("#create-room").click();
       await p.locator("[data-studio-tab=works]").click();
       await expect(p.locator("#storage-usage")).toContainText("48 MiB");
-      for (const [index, file] of [
+      const files = [
         "public/art/cylinder-06.mp3",
         process.env.GALLERY_TEST_FILM || "public/art/transito.mp4",
-      ].entries()) {
+      ];
+      for (const [index, file] of files.entries()) {
         await p.locator("#upload-form input[type=file]").setInputFiles(file);
         await p.locator("#upload-form [name=optimize]").uncheck();
         await p.locator("#upload-form [type=submit]").click();
@@ -105,76 +132,36 @@ try {
         .from("works")
         .select("cloud_url,cloud_bytes,ready")
         .eq("room_id", id);
-      if (
-        error ||
-        rows.length !== 2 ||
-        !rows.every(
-          (w) =>
-            w.ready &&
-            w.cloud_bytes > 0 &&
-            w.cloud_url.startsWith("https://res.cloudinary.com/"),
-        )
-      )
-        throw Error("Missing Cloudinary asset");
-      await p.goto(site + "?sala=" + id);
-      console.log(
-        "UPLOAD",
-        name,
-        rows.map((x) => x.cloud_bytes),
-      );
+      if (error || rows.length !== 2 || rows.some((w) => !w.ready))
+        throw Error("Missing uploaded artwork");
+      const cloud = rows.every((w) => w.cloud_url?.startsWith("https://res.cloudinary.com/"));
+      if (!cloud && (!activeStorage || rows.some((w) => w.cloud_bytes || w.cloud_url)))
+        throw Error("Unexpected storage provider");
+      const fileSizes = await Promise.all(files.map(async (file) => (await stat(file)).size));
+      if (cloud && !rows.map((w) => w.cloud_bytes).sort().every((n, i) => n === [...fileSizes].sort()[i]))
+        throw Error("Stored media sizes differ from the selected files");
+      console.log("UPLOAD", name, cloud ? "Cloudinary" : "Supabase Storage", fileSizes);
+      await p.locator("[data-studio-tab=room]").click();
+      await p.locator("#room-form [name=title]").fill("Umbral · playback verification");
+      await p.locator("#room-form [name=published]").check();
+      await p.locator("#room-form [type=submit]").click();
+      await expect(p.locator("#room-form .form-status")).toHaveText("Cambios guardados.");
+      const visitor = await browser.newPage({ ...device, locale: "es-AR" });
       const playbackErrors = [];
-      for (const tag of ["audio", "video"]) {
-        const el = p.locator(".pieces " + tag);
-        await el.scrollIntoViewIfNeeded();
-        try {
-          const bounds = await el.boundingBox();
-          const point = {
-            x: 20,
-            y:
-              tag === "video"
-                ? Math.max(4, bounds.height - 18)
-                : bounds.height / 2,
-          };
-          if (device.hasTouch) await el.tap({ position: point });
-          else await el.click({ position: point });
-          await el.evaluate((media) =>
-            Promise.race([
-              media.paused ? media.play() : Promise.resolve(),
-              new Promise((_, reject) =>
-                setTimeout(() => reject(Error("play timed out")), 12000),
-              ),
-            ]),
-          );
-          await expect
-            .poll(() => el.evaluate((m) => (m.error ? -1 : m.currentTime)), {
-              timeout: 12000,
-            })
-            .toBeGreaterThan(0.25);
-        } catch (e) {
-          console.log(
-            name,
-            tag,
-            e.message,
-            await el.evaluate(async (m) => {
-              const r = await fetch(m.currentSrc || m.src, {
-                headers: { Range: "bytes=0-1" },
-              });
-              await r.body?.cancel();
-              return {
-                status: r.status,
-                type: r.headers.get("content-type"),
-                reason: r.headers.get("x-cld-error"),
-                mediaError: m.error?.message,
-                extension: new URL(m.src).pathname.split(".").at(-1),
-              };
-            }),
-          );
-          playbackErrors.push(tag);
-          continue;
+      try {
+        await visitor.goto(site + "?sala=" + id);
+        for (const tag of ["audio", "video"]) {
+          try { await checkPlayback(visitor, tag, !!device.hasTouch); }
+          catch (e) { console.error(name, e.message); playbackErrors.push(tag); }
         }
-        await el.evaluate((m) => m.pause());
-      }
-      await p.locator("#studio").click();
+        if (independent && name === "desktop Chromium") {
+          try { await independentVisitor(id); }
+          catch (e) { playbackErrors.push("independent network: " + e.message); }
+        }
+      } finally { await visitor.close(); }
+      await p.locator("#room-form [name=published]").uncheck();
+      await p.locator("#room-form [type=submit]").click();
+      await expect(p.locator("#room-form .form-status")).toHaveText("Cambios guardados.");
       await p.locator("[data-studio-tab=works]").click();
       p.on("dialog", (d) => d.accept());
       for (const remaining of [1, 0]) {
@@ -189,7 +176,7 @@ try {
       console.log(
         "PASS",
         name,
-        "MP3 and MP4 uploaded from file inputs, Cloudinary CDN playback advanced for both, deletion restored all 48 MiB",
+        "MP3 and MP4 uploaded through the editor, guest playback and seeking passed, both works removed",
         rows.map((x) => x.cloud_bytes),
       );
     } catch (e) {
@@ -202,7 +189,7 @@ try {
             throw Error("Test identity mismatch");
           const { data: works, error } = await admin
             .from("works")
-            .select("id,cloud_bytes")
+            .select("id,cloud_bytes,extension,has_preview")
             .eq("room_id", id);
           if (error) throw error;
           for (const w of works.filter((w) => w.cloud_bytes)) {
@@ -228,6 +215,14 @@ try {
             }
             if (!r.ok)
               throw Error("Temporary media cleanup failed " + r.status);
+          }
+          const stored = works.filter((w) => !w.cloud_bytes).flatMap((w) => [
+            id + "/" + w.id + "." + w.extension,
+            ...(w.has_preview ? [id + "/" + w.id + ".preview.webp"] : []),
+          ]);
+          if (stored.length) {
+            const removed = await admin.storage.from("gallery-art").remove(stored);
+            if (removed.error) throw removed.error;
           }
           const d = await admin.auth.admin.deleteUser(id);
           if (d.error) throw d.error;

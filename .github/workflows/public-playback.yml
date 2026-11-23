@@ -1,0 +1,26 @@
+name: Public media playback
+run-name: Public playback ${{ inputs.room || 'exhibitions' }}
+on:
+  workflow_dispatch:
+    inputs:
+      room:
+        description: Published room UUID with audio and video (empty for inaugural exhibitions)
+        required: false
+        type: string
+permissions:
+  contents: read
+jobs:
+  visitor:
+    runs-on: macos-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - run: npx playwright install webkit
+      - run: node scripts/public-playback.mjs
+        env:
+          GALLERY_ROOM: ${{ inputs.room }}

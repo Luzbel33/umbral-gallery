@@ -36,6 +36,12 @@ EntrÃ¡ al patio desde el menÃº en modo web o 3D. TambiÃ©n podÃ©s activar **Camin
 
 El cupo global es de 120 visitas sociales, de a seis por grupo. Al llenarse se conserva la visita individual. La capacidad observada, el coste de las descargas y los presupuestos de la voz estÃ¡n en el [informe de pruebas de carga](CAPACIDAD.md).
 
+### Verificar el almacenamiento y la reproducción
+
+En una cuenta temporal de Cloudinary, el titular ingresa su correo en el enlace privado y lo confirma desde el mensaje recibido. Hasta entonces, la entrega está restringida por IP. Conservá desactivada la ampliación del cupo hasta verificar las subidas y su reproducción desde otra red. [Confirmación de Cloudinary](https://cloudinary.com/documentation/claimable_cloud_provisioning)
+
+Con el proyecto vinculado y las herramientas de Supabase y GitHub autenticadas, ejecutá `node scripts/test-cloud-media.mjs --deployed --independent`. La prueba sube un MP3 y un MP4, publica la sala temporal, entra como visitante sin cuenta, reproduce ambas obras, adelanta y confirma que siguen avanzando. También repite la reproducción desde macOS con Chrome de escritorio y perfiles móviles de Pixel y iPhone. Al terminar retira las obras y libera el cupo. Para verificar el proveedor que usa un artista común, agregá `--active-storage`. El procedimiento de activación está en el [README principal](README.md).
+
 ## Desarrollo y publicaciÃ³n
 
 Requiere Node 22.12 o posterior y un navegador moderno. El recorrido usa WebGL 2. La vista web permite visitar sin aceleraciÃ³n 3D.
