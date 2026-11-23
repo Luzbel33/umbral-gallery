@@ -51,13 +51,23 @@ jobs:
           "$ANDROID_HOME/emulator/emulator" -list-avds | grep -Fx gallery
           sudo setfacl -m "u:$(id -un):rw" /dev/kvm
           adb start-server
-          "$ANDROID_HOME/emulator/emulator" @gallery -no-window -no-snapshot -gpu swiftshader_indirect > "$RUNNER_TEMP/gallery-emulator.log" 2>&1 &
+          "$ANDROID_HOME/emulator/emulator" @gallery -no-window -no-snapshot -gpu swiftshader_indirect -dns-server 8.8.8.8,8.8.4.4 > "$RUNNER_TEMP/gallery-emulator.log" 2>&1 &
           emulator_pid=$!
           sleep 4
           kill -0 "$emulator_pid"
           timeout 240 adb wait-for-device
           timeout 240 bash -c 'until adb shell getprop sys.boot_completed | grep -q 1; do sleep 2; done'
           adb shell wm dismiss-keyguard
+          adb emu gsm data home
+          adb shell svc data enable
+          adb shell svc wifi enable
+          adb shell cmd wifi connect-network AndroidWifi open || adb shell cmd wifi status
+          if ! timeout 75 bash -c 'until adb shell dumpsys connectivity | grep -E "Active default network: [0-9]+" > /dev/null; do sleep 2; done'; then
+            adb shell ip addr
+            adb shell cmd wifi status
+            adb shell dumpsys connectivity | head -60
+            exit 1
+          fi
           adb shell pm path com.android.chrome | grep -q package:
           adb shell am set-debug-app --persistent com.android.chrome
           adb shell 'echo "chrome --no-first-run --disable-fre" > /data/local/tmp/chrome-command-line'
