@@ -1,4 +1,5 @@
 import { t } from "./i18n.js";
+import { detachedMedia } from "./media-focus.js";
 import { bindJoystick } from "./joystick.js";
 import * as T from "three";
 import { lightDust } from "./atmosphere.js";
@@ -9,7 +10,7 @@ import { courtyard } from "./courtyard.js";
 import { icon } from "./icons.js";
 import { $, esc, dialog, panel, toast, failure } from "./ui.js";
 import "./walk.css";
-export function enterWalk(room, { exit, openPiece, login }) {
+export function enterWalk(room, { exit, openPiece, login, editRoom }) {
   const main = $("#main");
   const economical =
     (navigator.deviceMemory || 8) <= 4 ||
@@ -21,11 +22,14 @@ export function enterWalk(room, { exit, openPiece, login }) {
   });
   document.body.classList.add("walking");
   main.innerHTML = `<section id="walk" aria-label="${t("Recorrido 3D de")} ${esc(room.title)}"><div id="viewport" tabindex="0" aria-label="${t("WASD o flechas")}"></div>
-    <div class="walk-top"><button id="leave" class="hud-btn">${icon("back")} <span>${t("Modo web")}</span></button><div class="walk-title">${esc(room.title)}<small>${esc(room.artist)}</small></div><button class="hud-btn" id="artist-card">${icon(room.id === "patio" ? "headphones" : "user")} <span>${t(room.id === "patio" ? "Música y créditos" : "Ficha del artista")}</span></button><button class="hud-btn" id="visits" aria-pressed="false">${icon("users")} <span>${t("Caminar en compañía")}</span></button>
+    <div class="walk-top"><button id="leave" class="hud-btn">${icon("back")} <span>${t("Modo web")}</span></button><div class="walk-title">${esc(room.title)}<small>${esc(room.artist)}</small></div><button class="hud-btn" id="artist-card">${icon(room.id === "patio" ? "headphones" : "user")} <span>${t(room.id === "patio" ? "Música y créditos" : "Artista y redes")}</span></button><button class="hud-btn" id="visits" aria-pressed="false">${icon("users")} <span>${t("Caminar en compañía")}</span></button>
     ${room.music ? `<button class="hud-btn" id="sound" aria-label="${t("Activar música")}" aria-pressed="false">${icon("mute")} <span>${t("Música")}</span></button>` : ""}<button class="hud-btn" id="help" aria-label="${t("Controles de movimiento")}">${icon("help")}</button></div>
-    <div class="walk-bottom"><div class="walk-hint">${icon("move", 15)} ${t("WASD o flechas")} <b>·</b> ${t("Mové el mouse para mirar")}</div><button id="free-look" class="hud-btn">${icon("scan")} ${t("Mirar sin bordes")}</button><button id="inspect" class="primary" hidden>${icon("eye")} ${t("Ver obra")}</button></div>
+    <div class="walk-bottom">${editRoom ? `<button class="hud-btn" id="edit-installation">${icon("palette", 16)} ${t(room.demo ? "Probar el editor" : "Editar mi sala")}</button>` : ""}<div class="walk-hint">${icon("move", 15)} ${t("WASD o flechas")} <b>·</b> ${t("Mové el mouse para mirar")}</div><button id="free-look" class="hud-btn">${icon("scan")} ${t("Mirar sin bordes")}</button><button id="inspect" class="primary" hidden>${icon("eye")} ${t("Ver obra")}</button></div>
     <div class="joystick" role="group" aria-label="${t("Joystick de movimiento")}"><span></span></div>
     </section>`;
+  if (editRoom)
+    $("#edit-installation").onclick = () =>
+      Promise.resolve(editRoom()).catch((e) => toast(failure(e)));
   const state = new AbortController(),
     listen = (el, type, fn, opts = {}) =>
       el.addEventListener(type, fn, { ...opts, signal: state.signal });
@@ -74,6 +78,12 @@ export function enterWalk(room, { exit, openPiece, login }) {
     keys = new Set(),
     ray = new T.Raycaster(),
     point = new T.Vector2();
+  const roomScale = world.scale || 1;
+  if (world.scale) {
+    camera.position.set(-1.55 * roomScale, 1.67, 1.95 * roomScale);
+    camera.lookAt(-0.35 * roomScale, 1.93, -8.68 * roomScale);
+  }
+  if (room.demo) $("#visits").hidden = true;
   const reducedMotion = matchMedia("(prefers-reduced-motion: reduce)");
   let dust =
     !economical &&
@@ -100,7 +110,6 @@ export function enterWalk(room, { exit, openPiece, login }) {
     );
   }
   $("#artist-card").onclick = () => {
-    if (music && !music.paused) $("#sound")?.click();
     const works = room.works.filter((w) => w.ready !== false);
     panel(
       t(room.id === "patio" ? "Música y créditos" : "Obras y contacto"),
@@ -135,7 +144,6 @@ export function enterWalk(room, { exit, openPiece, login }) {
       experience.click();
       return;
     }
-    if (work.type === "audio" && music && !music.paused) $("#sound")?.click();
     openPiece(work);
   }
   const doors = document.createElement("button");
@@ -185,8 +193,8 @@ export function enterWalk(room, { exit, openPiece, login }) {
   observer.observe(view);
   resize();
   const canMove = (x, z) =>
-    Math.abs(x) < 7.56 &&
-    Math.abs(z) < 8.5 &&
+    Math.abs(x) < 7.56 * roomScale &&
+    Math.abs(z) < 8.5 * roomScale &&
     !world.blocks.some(
       ([xmin, xmax, zmin, zmax]) =>
         x > xmin && x < xmax && z > zmin && z < zmax,
@@ -336,6 +344,7 @@ export function enterWalk(room, { exit, openPiece, login }) {
             $("span", b).textContent = t("Volver a conectar");
           }
         },
+        roomScale,
       );
       if (!live) session.dispose();
       else {
@@ -355,7 +364,12 @@ export function enterWalk(room, { exit, openPiece, login }) {
     $("#sound").onclick = async () => {
       const b = $("#sound");
       if (!music) {
-        music = new Audio(room.music);
+        music = detachedMedia(new Audio(room.music));
+        music.addEventListener("pause", () => {
+          b.innerHTML = icon("mute") + `<span>${t("Música")}</span>`;
+          b.setAttribute("aria-pressed", "false");
+          b.setAttribute("aria-label", t("Activar música"));
+        });
         music.loop = true;
         music.volume = 0.48;
       }

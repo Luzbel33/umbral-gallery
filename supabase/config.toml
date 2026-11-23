@@ -17,3 +17,6 @@ policy = "per_worker"
 
 [functions.gallery-public]
 verify_jwt = false
+
+[functions.gallery-account]
+verify_jwt = false

@@ -5,6 +5,8 @@ import { art } from "./catalog.js";
 import { sculpture } from "./architecture.js";
 import { readBounded } from "./formats.js";
 
+import { detachedMedia } from "./media-focus.js";
+import { wallLabel } from "./wall-label.js";
 const settings = {
   frecuencia: {
     eye: [2.75, 2.03, 0.78],
@@ -60,46 +62,34 @@ export function exhibition(scene, renderer, camera, room, invalidate) {
     controller = new AbortController();
   const hitMaterial = new T.MeshBasicMaterial({ visible: false });
   let environment, film, screen, frameCallback;
-  function placard(title, subtitle, x, y, z, width, angle = 0) {
-    const c = document.createElement("canvas");
-    c.width = 1024;
-    c.height = 236;
-    const ink = c.getContext("2d");
-    ink.fillStyle = "#242526";
-    ink.fillRect(0, 0, 1024, 236);
-    ink.fillStyle = "#d1aa75";
-    ink.fillRect(26, 25, 4, 186);
-    ink.font = "500 35px sans-serif";
-    ink.fillText(subtitle, 64, 80, 915);
-    ink.fillStyle = "#faf2e4";
-    ink.font = "56px Georgia,serif";
-    ink.fillText(title, 62, 164, 910);
-    const tex = new T.CanvasTexture(c);
-    tex.colorSpace = T.SRGBColorSpace;
-    const sign = new T.Mesh(
-      new T.PlaneGeometry(width, (width * 236) / 1024),
-      new T.MeshBasicMaterial({ map: tex, toneMapped: false }),
-    );
+  function lettering(work, x, y, z, width, bright) {
+    const sign = wallLabel(work, "wall", bright, width);
     sign.position.set(x, y, z);
-    sign.rotation.y = angle;
     group.add(sign);
   }
   if (room.id === "frecuencia")
-    placard("Cylinders", "CHRIS ZABRISKIE   /   2014", 0, 1.12, -4.022, 0.69);
+    lettering(
+      { ...room.works[0], medium: "Chris Zabriskie", year: 2014 },
+      0,
+      1.12,
+      -4.022,
+      0.72,
+      false,
+    );
   if (room.id === "intervalos")
-    placard(room.works[0].title, room.artist, 5.83, 1.67, -8.926, 1.62);
+    lettering(room.works[0], 5.83, 1.67, -8.926, 1.6, false);
   if (room.id === "orbital")
-    placard(room.title, room.artist, 0, 0.25, 0.377, 1.42);
+    lettering(
+      { title: room.title, medium: room.artist },
+      0,
+      0.25,
+      0.377,
+      1.42,
+      true,
+    );
   if (room.id === "estratos")
     room.works.forEach((w, i) =>
-      placard(
-        w.title,
-        room.artist,
-        [-4.86, 0, 4.86][i] + 0.85,
-        0.72,
-        -8.926,
-        1.44,
-      ),
+      lettering(w, [-4.86, 0, 4.86][i] + 0.65, 0.75, -8.926, 1.55, true),
     );
   let recordFace;
   if (room.id === "frecuencia") {
@@ -136,7 +126,7 @@ export function exhibition(scene, renderer, camera, room, invalidate) {
   }
   async function toggleFilm() {
     if (!film) {
-      film = document.createElement("video");
+      film = detachedMedia(document.createElement("video"));
       film.playsInline = true;
       film.loop = true;
       film.preload = "none";

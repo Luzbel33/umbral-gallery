@@ -1,4 +1,4 @@
-import {t} from "./i18n.js";
+import { t } from "./i18n.js";
 export const codeExtensions =
   "txt md markdown rst json jsonl ndjson csv tsv yaml yml toml ini cfg conf log xml svg html htm css scss sass less js jsx mjs cjs ts tsx vue svelte astro py ipynb r rmd java kt kts swift c h cpp cc cxx hpp cs go rs rb php lua sh bash zsh ps1 sql graphql gql dart scala clj cljs ex exs erl hs fs fsharp sol gd glsl vert frag wgsl asm tex diff patch dockerfile makefile".split(
     " ",
@@ -28,7 +28,8 @@ export const fileAccept = [
 export const suffix = (name) => (name || "").toLowerCase().split(".").pop();
 export function workType(ext) {
   if (ext === "webp") return "image";
-  if (["mp4", "webm", "mov", "ogv"].includes(ext)) return "video";
+  if (["mp4", "webm", "mov", "ogv", "youtube", "vimeo"].includes(ext))
+    return "video";
   if (ext === "mesh") return "model";
   if (ext === "txt") return "source";
   if (ext === "pdf") return "document";
@@ -60,7 +61,9 @@ export async function readBounded(url, limit, signal) {
     referrerPolicy: "no-referrer",
   });
   if (!response.ok || Number(response.headers.get("content-length")) > limit)
-    throw Error(t("No se pudo abrir este archivo dentro del límite del visor."));
+    throw Error(
+      t("No se pudo abrir este archivo dentro del límite del visor."),
+    );
   const reader = response.body.getReader(),
     chunks = [];
   let total = 0;

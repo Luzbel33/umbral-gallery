@@ -10,9 +10,11 @@ Galería virtual gratuita para artistas, músicos y programadores. Abrí una sal
 
 Explorá el catálogo sin cuenta. Elegí una disciplina o entrá directamente desde el enlace de cualquier sala pública. Podés marcar favoritos como visitante en ese navegador. Al ingresar a una cuenta, las salas guardadas en ella se sincronizan entre dispositivos.
 
-Usá **Registrarme** para elegir tu nombre y crear una llave de acceso WebAuthn. Podés quedarte como visitante registrado. Para exponer abrí **Mi espacio → Crear mi sala**. Cada cuenta tiene una sola sala. Agregá tu biografía y elegí título, disciplina, color, piso y música de ambiente. Agregá enlaces HTTPS a tu web, red social y proyecto o demo. En **Obras y archivos** podés subir, retirar e intercambiar obras entre ocho posiciones. **Mostrar mi sala en el catálogo público** publica la sala. Cada archivo subido ya se puede abrir por enlace directo. Para eliminarlo, usá **Retirar**.
+Probá la [sala de ejemplo editable](https://luzbel33.github.io/umbral-gallery/?sala=taller) sin registrarte. Sus cambios duran hasta recargar la pestaña. La [guía de visitantes y artistas](https://luzbel33.github.io/umbral-gallery/?guia=1) explica el recorrido completo.
 
-El piloto admite una llave por cuenta. Elegí una llave sincronizada o conservá una llave física. La pérdida de la única copia impide recuperar la cuenta. Las passkeys dependen del dominio de registro y de la compatibilidad del dispositivo. No se solicita correo.
+En **Registrarme**, elegí usuario y contraseña y guardá el código de recuperación. En **Ingresar** también podés usar el acceso anterior de tu dispositivo. Con tu cuenta podés guardar favoritos y chatear sin crear una sala.
+
+En **Mi espacio → Crear mi sala** elegí tamaño, color, piso, estilo de cartela y música. Completá tu biografía, web, hasta tres redes sociales y enlace de proyecto. En **Obras y archivos**, elegí una obra, editá título, técnica, año y texto, y tocá una de las ocho posiciones del plano. Podés elegir el ángulo inicial de una escultura. Recorré tu instalación antes de activar **Mostrar mi sala en el catálogo público**. Los archivos subidos se pueden abrir por enlace directo incluso en borrador. Podés liberar el cupo eliminando una sala vacía.
 
 ### Archivos que se pueden exponer
 
@@ -24,7 +26,7 @@ El piloto admite una llave por cuenta. Elegí una llave sincronizada o conservá
 | Documentos y datos | PDF paginado en canvas, CSV y TSV en tabla, JSON formateado y cuadernos Jupyter con las celdas visibles. |
 | Código y escritura | Texto UTF-8, Markdown, scripts, HTML, SVG como fuente, shaders y decenas de extensiones más. El contenido se muestra como texto. Las demos ejecutables y repositorios se abren desde el enlace externo que elija el artista. [Lista de extensiones](src/formats.js). |
 
-Cada sala admite ocho obras y cada archivo hasta 12 MiB. El límite de código y texto es 512 KiB. Los modelos se validan y convierten antes de subirlos. Los visores especializados se cargan al abrir una obra y ponen límites al tamaño descargado. El PDF se dibuja sin habilitar scripts ni formularios interactivos. El sitio usa una política de contenido y los enlaces públicos abren sin acceso a la ventana de origen. Quien opera la galería puede ocultar una sala. Para reportar contenido, compartí la URL pública sin datos personales en los [issues del proyecto](https://github.com/Luzbel33/umbral-gallery/issues).
+El piloto admite 100 salas de artistas, incluidos borradores, y cuatro obras por sala. Cada sala tiene 6 MiB reservados y puede llegar a 48 MiB si queda espacio en la bolsa compartida de 200 MiB. Entre todas tienen un techo de 800 MiB, incluidas las miniaturas. El servidor verifica los bytes reales, también con subidas simultáneas. Cada archivo listo admite hasta 32 MiB y los modelos originales hasta 12 MiB. Audio y video originales de hasta 128 MiB se preparan en el dispositivo. En navegadores compatibles el editor puede convertir a Opus o WebM de hasta 1280 px en el lado mayor y muestra el peso antes de subir. YouTube, Vimeo y SoundCloud se pueden exponer por enlace sin gastar espacio de archivos. El ambiente usa una pista subida. Al reproducir otra obra se pausa la anterior. El límite de código y texto es 512 KiB. Los modelos se validan y convierten antes de subirlos. Los visores especializados se cargan al abrir una obra y ponen límites al tamaño descargado. El PDF se dibuja sin habilitar scripts ni formularios interactivos. El sitio usa una política de contenido y los enlaces públicos abren sin acceso a la ventana de origen. Quien opera la galería puede ocultar una sala. Para reportar contenido, compartí la URL pública sin datos personales en los [issues del proyecto](https://github.com/Luzbel33/umbral-gallery/issues).
 
 ### Patio, chat y voz
 
@@ -52,16 +54,17 @@ Para una copia independiente, creá el proyecto de Supabase, actualizá los enla
 supabase link --project-ref TU_PROYECTO
 supabase db push --linked
 supabase secrets set GALLERY_ORIGIN=https://tu-dominio.example
+supabase functions deploy gallery-account --use-api
 supabase functions deploy gallery-passkeys --use-api
 supabase functions deploy gallery-voice --use-api
 supabase functions deploy gallery-public --use-api
 ```
 
-La función de identidad verifica WebAuthn y emite sesiones. Los retos firmados vencen en tres minutos y se consumen una sola vez. La función de voz comprueba la sesión, el turno y el cupo antes de transmitir. Las claves de servicio permanecen en el runtime del backend. PostgreSQL aplica propiedad por cuenta, permisos por fila, posiciones únicas, límites de texto y autorización por grupo. Storage sirve archivos públicos directamente. Las reservas de subidas interrumpidas pueden retirarse desde el editor.
+La función de cuentas gestiona altas y recuperación. Supabase Auth verifica las contraseñas y emite sesiones. La función de llaves conserva el ingreso anterior con WebAuthn. Los retos firmados vencen en tres minutos y se consumen una sola vez. La función de voz comprueba la sesión, el turno y el cupo antes de transmitir. Las claves de servicio permanecen en el runtime del backend. PostgreSQL aplica propiedad por cuenta, permisos por fila, posiciones únicas, límites de texto y autorización por grupo. Storage sirve archivos públicos directamente. Las reservas de subidas interrumpidas pueden retirarse desde el editor.
 
 Para las pruebas de navegación, iniciá el sitio en el puerto 5178 y ejecutá `npx playwright test`. `GALLERY_TEST_URL` y `CHROME_PATH` permiten elegir el sitio y el navegador. Para usar el navegador incluido en Playwright ejecutá previamente `npx playwright install chromium`. Para ensayar carga descargá y ejecutá una pila local de Supabase como se indica en el [informe reproducible](CAPACIDAD.md).
 
-La prueba integral del editor y la comunidad usa dos cuentas temporales, un autenticador de prueba y audio sintético. En la pila local, configurá un archivo de entorno con `GALLERY_ORIGIN=http://localhost:5184`, iniciá `supabase functions serve --env-file RUTA_AL_ARCHIVO` y ejecutá `node scripts/test-community.mjs`. Las capturas se guardan en `.qa/`.
+La prueba integral del editor y la comunidad usa dos cuentas temporales, contraseñas temporales y audio sintético. En la pila local, configurá un archivo de entorno con `GALLERY_ORIGIN=http://localhost:5184`, iniciá `supabase functions serve --env-file RUTA_AL_ARCHIVO` y ejecutá `node scripts/test-community.mjs`. Las capturas se guardan en `.qa/`. Para comprobar los cupos de artistas, la reserva de espacio y dos subidas reales simultáneas, ejecutá `node scripts/test-pilot.mjs` en Docker local.
 
 En una copia alojada, restringí Realtime a canales privados desde la configuración del proyecto. La política de voz sólo permite escuchar el canal asignado a la propia visita autenticada. [Configuración de Realtime](https://supabase.com/docs/guides/realtime/settings).
 

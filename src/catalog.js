@@ -58,9 +58,27 @@ const collections = [
     work("Intervalos · Fotograma", "image", "intervalos.webp"),
   ],
   [
-    work("Delta del Paraná", "image", "earth-parana_delta_0.webp"),
-    work("Sabotage", "image", "earth-sabotage.webp"),
-    work("Andes", "image", "earth-andes_0.webp"),
+    {
+      ...work("Delta del Paraná", "image", "earth-parana_delta_0.webp"),
+      medium: "USGS · Landsat",
+      caption: t(
+        "Los canales del delta del Paraná dibujan una red entre las islas y el estuario.",
+      ),
+    },
+    {
+      ...work("Sabotage", "image", "earth-sabotage.webp"),
+      medium: "USGS · Earth As Art",
+      caption: t(
+        "En esta imagen del río Colorado, el falso color hace visibles las diferencias entre cauces y terrenos secos.",
+      ),
+    },
+    {
+      ...work("Andes", "image", "earth-andes_0.webp"),
+      medium: "USGS · Earth As Art",
+      caption: t(
+        "La imagen satelital recorta los pliegues minerales y los valles de la cordillera.",
+      ),
+    },
   ],
 ];
 export const exhibits = entries.map(
@@ -103,6 +121,77 @@ export const exhibits = entries.map(
     published: true,
   }),
 );
+export const workshop = {
+  id: "taller",
+  demo: true,
+  published: true,
+  title: t("Gabinete de pliegues"),
+  artist: t("Estudio Umbral"),
+  description: t(
+    "Una sala de ejemplo que podés editar. Reunimos un estudio en imagen, una escultura de cobre y una pieza para escuchar.",
+  ),
+  artist_bio: t(
+    "El equipo de Umbral diseñó esta muestra para que puedas probar cómo se monta una exposición.",
+  ),
+  category: "Multidisciplinaria",
+  wall_color: "#c1b8a7",
+  finish: "Basalto",
+  room_size: "standard",
+  label_style: "wall",
+  website: "https://luzbel33.github.io/umbral-gallery/",
+  social_url: "https://github.com/Luzbel33",
+  project_url: "https://github.com/Luzbel33/umbral-gallery",
+  thumb: art("thumb-taller.webp"),
+  cover: art("cover-taller.webp"),
+  music_slot: 3,
+  music: recordings.six.url,
+  recording: recordings.six,
+  works: [
+    {
+      id: "study",
+      bytes: 63778,
+      slot: 1,
+      title: t("Estudio de torsión"),
+      type: "image",
+      url: art("orbital-wide.webp"),
+      preview: art("thumb-orbital.webp"),
+      medium: t("Estudio digital"),
+      caption: t(
+        "La luz rasante revela el cambio de espesor entre dos pliegues.",
+      ),
+      year: 2026,
+    },
+    {
+      id: "fold",
+      bytes: 56636,
+      slot: 2,
+      title: t("Abanico de cobre"),
+      type: "model",
+      url: art("copper-fan.mesh"),
+      source_name: "copper-fan.mesh",
+      medium: t("Escultura digital"),
+      year: 2026,
+      orientation: 25,
+      caption: t(
+        "Recorré la pieza desde un lado para ver cómo cada lámina proyecta sombra sobre la siguiente.",
+      ),
+    },
+    {
+      id: "track",
+      bytes: 831227,
+      slot: 3,
+      title: "Cylinder Six",
+      type: "audio",
+      url: recordings.six.url,
+      medium: "Chris Zabriskie · Cylinders",
+      year: 2014,
+      caption: t(
+        "Grabación de Chris Zabriskie, publicada bajo CC BY 4.0. También suena como música ambiente si la activás.",
+      ),
+    },
+  ].map((w) => ({ ...w, ready: true })),
+};
+exhibits.push(workshop);
 export { disciplines as categories } from "../supabase/functions/_shared/catalog.js";
 export const previewPath = (w) => w.room_id + "/" + w.id + ".preview.webp";
 export const pathFor = (w) => w.room_id + "/" + w.id + "." + w.extension;
@@ -113,7 +202,7 @@ export function adaptRoom(r, objectUrl) {
       ...w,
       preview: w.has_preview ? objectUrl(previewPath(w)) : null,
       type: workType(w.extension),
-      url: objectUrl(pathFor(w)),
+      url: w.external_url || objectUrl(pathFor(w)),
     }));
   const ready = works.filter((w) => w.ready);
   const coverWork = ready.find((w) => w.type === "image");
@@ -121,8 +210,9 @@ export function adaptRoom(r, objectUrl) {
     ...r,
     works,
     cover: coverWork?.preview || coverWork?.url,
-    music: ready.find((w) => w.slot === r.music_slot && w.type === "audio")
-      ?.url,
+    music: ready.find(
+      (w) => w.slot === r.music_slot && w.type === "audio" && !w.external_url,
+    )?.url,
   };
 }
 import { workType } from "./formats.js";

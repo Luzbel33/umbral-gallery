@@ -1,5 +1,165 @@
 // Spanish source messages also identify errors returned by the gallery's existing APIs.
 const english = {
+  "Otras redes sociales": "Additional social profiles",
+  "Cómo se calcula el espacio": "How storage works",
+  "Cada artista tiene 6 MiB reservados. Podés llegar a 48 MiB por sala usando la bolsa compartida de 200 MiB. El máximo por archivo listo es 32 MiB. Los enlaces no gastan espacio de archivos.":
+    "Each artist has 6 MiB reserved. A room can grow to 48 MiB using the shared 200 MiB pool. Each finished upload can be up to 32 MiB. Media links use none of your file storage.",
+  "Editar mi sala": "Edit my room",
+  "Podés seguir como visitante. Si querés exponer, creá una de las 100 salas del piloto. Podés agregar cuatro obras, con archivos o enlaces.":
+    "You can keep visiting. To exhibit, create one of the pilot’s 100 artist rooms. Add four works as uploads or media links.",
+  "Cada archivo o enlace ocupa uno de los cuatro lugares. Las miniaturas se incluyen en el espacio usado.":
+    "Each file or media link takes one of your four places. Thumbnails count toward storage.",
+  "Optimizar audio o video en mi dispositivo":
+    "Optimize audio or video on my device",
+  "Subir un archivo": "Upload a file",
+  "Usar un enlace": "Use a media link",
+  "Agregar una obra por enlace": "Add a work by link",
+  "Para piezas largas, pegá un video de YouTube o Vimeo, o una pista de SoundCloud. Ocupa un lugar y cero bytes de tu cupo.":
+    "For longer pieces, paste a YouTube or Vimeo video, or a SoundCloud track. It takes one place and uses none of your file storage.",
+  "Enlace a la obra": "Link to the work",
+  "Agregar enlace": "Add link",
+  Original: "Original",
+  "Preparando archivo…": "Preparing file…",
+  Optimizando: "Optimizing",
+  "Se subirán": "Upload size",
+  Quedarán: "Remaining after upload",
+  "Pegá el enlace público a un video de YouTube o Vimeo, o a una pista de SoundCloud.":
+    "Paste a public YouTube or Vimeo video link or a SoundCloud track.",
+  "Obra agregada.": "Work added.",
+  Usados: "Used",
+  "Disponibles ahora": "Available now",
+  "Enlace no compatible.": "Unsupported link.",
+  "Abrir en": "Open on",
+  "Escuchar obra": "Listen to work",
+  "Ver video": "Watch video",
+  "Este original supera el límite de preparación.":
+    "This source file is above the preparation limit.",
+  "Este archivo no entra con la calidad disponible en este navegador. Podés usar una versión más liviana o un enlace.":
+    "This file won't fit at the quality this browser can prepare. Choose a smaller version or add a media link.",
+  "Este archivo supera el espacio disponible. Elegí un archivo más liviano, retirá una obra o usá un enlace.":
+    "This file exceeds the available storage. Choose a smaller file, remove a work or add a media link.",
+  "Eliminar mi sala vacía y liberar el cupo":
+    "Delete my empty room and release its place",
+  "¿Eliminar la sala vacía y liberar su cupo? Conservás tu cuenta y tus favoritos de otras salas.":
+    "Delete this empty room and release its place? You keep your account and favorites from other rooms.",
+  "Cómo funciona": "How it works",
+  "Ese usuario ya está en uso. Elegí otro o iniciá sesión.":
+    "That username is taken. Choose another or sign in.",
+  "Hubo varios intentos. Volvé a probar en diez minutos.":
+    "Too many attempts. Try again in ten minutes.",
+  "Revisá el usuario y el código de recuperación.":
+    "Check your username and recovery code.",
+  "Revisá el usuario y la contraseña.": "Check your username and password.",
+  "No pudimos conectar con tu cuenta. Probá de nuevo.":
+    "We couldn't connect to your account. Try again.",
+  "Tu cuenta está lista": "Your account is ready",
+  "Guardá este código para recuperar tu cuenta si olvidás la contraseña.":
+    "Save this code so you can recover your account if you forget your password.",
+  Continuar: "Continue",
+  "Descargar código": "Download code",
+  Usuario: "Username",
+  "Código de recuperación": "Recovery code",
+  "Crear cuenta": "Create account",
+  "Recuperar mi cuenta": "Recover my account",
+  "Iniciar sesión": "Sign in",
+  "De 3 a 24 letras sin tildes, números o guion bajo.":
+    "Use 3–24 letters (A–Z), numbers or underscores.",
+  "Creá tu cuenta para preparar tu primera exposición.":
+    "Create an account to prepare your first exhibition.",
+  "Con una cuenta podés guardar salas y participar en el chat. Exponer es opcional.":
+    "Create an account to save rooms and join the chat. Exhibiting is optional.",
+  "Usá el código que guardaste al crear tu cuenta y elegí una contraseña nueva.":
+    "Enter the code you saved at signup and choose a new password.",
+  "Ingresá con el usuario y la contraseña que elegiste.":
+    "Use the username and password you chose.",
+  "Contraseña nueva": "New password",
+  Contraseña: "Password",
+  "Mostrar contraseña": "Show password",
+  "Ocultar contraseña": "Hide password",
+  "Usá al menos 10 caracteres.": "Use at least 10 characters.",
+  "Guardar contraseña": "Save password",
+  "Volver al ingreso": "Back to sign in",
+  "Olvidé mi contraseña": "Forgot password",
+  "Me registré antes con mi dispositivo":
+    "I previously signed up with my device",
+  "Entrar con mi acceso anterior": "Sign in with my original passkey",
+  "Ver una sala de ejemplo": "Visit an example room",
+  "Un momento…": "One moment…",
+  "Usá una contraseña de hasta 72 bytes.":
+    "Use a password of 72 bytes or fewer.",
+  "El usuario o la contraseña son incorrectos.":
+    "The username or password is incorrect.",
+  "Gabinete de pliegues": "Cabinet of Folds",
+  "Una sala de ejemplo que podés editar. Reunimos un estudio en imagen, una escultura de cobre y una pieza para escuchar.":
+    "An example room you can edit. Explore an image study, a copper sculpture and a sound recording.",
+  "El equipo de Umbral diseñó esta muestra para que puedas probar cómo se monta una exposición.":
+    "The Umbral team designed this exhibition so you can try installing a show yourself.",
+  "Estudio de torsión": "Torsion Study",
+  "Estudio digital": "Digital study",
+  "La luz rasante revela el cambio de espesor entre dos pliegues.":
+    "Raking light reveals the changing thickness between two folds.",
+  "Abanico de cobre": "Copper Fan",
+  "Escultura digital": "Digital sculpture",
+  "Recorré la pieza desde un lado para ver cómo cada lámina proyecta sombra sobre la siguiente.":
+    "Move around the side to see how each fold casts a shadow on the next.",
+  "Grabación de Chris Zabriskie, publicada bajo CC BY 4.0. También suena como música ambiente si la activás.":
+    "A recording by Chris Zabriskie, released under CC BY 4.0. You can also turn it on as the room soundtrack.",
+  "Los canales del delta del Paraná dibujan una red entre las islas y el estuario.":
+    "The Paraná Delta’s channels trace a network between its islands and the estuary.",
+  "En esta imagen del río Colorado, el falso color hace visibles las diferencias entre cauces y terrenos secos.":
+    "False color distinguishes the Colorado River’s channels from dry land.",
+  "La imagen satelital recorta los pliegues minerales y los valles de la cordillera.":
+    "The satellite image outlines mineral folds and valleys in the mountains.",
+  "Montaje de la obra": "Install this work",
+  "Técnica o material": "Medium or material",
+  "Ej. tinta sobre papel": "e.g. ink on paper",
+  Año: "Year",
+  "Sobre esta obra": "About this work",
+  "¿Qué te gustaría que el visitante descubra?":
+    "What would you like visitors to notice?",
+  "Vista previa de la cartela": "Wall label preview",
+  "Lugar en la sala": "Position in the room",
+  "Tocá un punto del plano. Si hay otra obra, intercambian lugares al guardar.":
+    "Choose a point on the floor plan. If another work is there, they swap when you save.",
+  Ventanas: "Windows",
+  "Entrada al recorrido": "Visitor entrance",
+  "Orientación de la escultura": "Sculpture angle",
+  "Define cómo queda sobre la base. Cada visitante puede girarla y acercarla en el visor.":
+    "Sets the orientation on the plinth. Visitors can rotate and zoom in the viewer.",
+  "Guardar montaje": "Save installation",
+  "Intercambia con": "Swaps with",
+  "Montaje guardado.": "Installation saved.",
+  "Artista y redes": "Artist & links",
+  Repositorio: "Repository",
+  "Probar el editor": "Try the editor",
+  "Sala de ejemplo": "Example room",
+  "Editar la sala de ejemplo": "Edit the example room",
+  "Probá con estas obras o con un archivo tuyo. Los cambios duran hasta que recargues la página y solo los ves vos.":
+    "Try these works or add your own file. Only you see your changes, and refreshing resets the example.",
+  "Primero prepará la sala. Después subí tus obras, ubicá cada una en el plano y publicá cuando estés listo.":
+    "Set up your room, upload your works, place them on the floor plan and publish when you’re ready.",
+  "Tamaño de la sala": "Room size",
+  "Íntima · 13,4 × 15,1 m": "Intimate · 13.4 × 15.1 m",
+  "Galería · 16 × 18 m": "Gallery · 16 × 18 m",
+  "Amplia · 19,2 × 21,6 m": "Spacious · 19.2 × 21.6 m",
+  "Cartelas junto a las obras": "Wall labels",
+  "Letras sobre la pared": "Lettering on the wall",
+  "Papel marfil": "Ivory paper",
+  "Sin cartelas": "No wall labels",
+  "Para elegir una canción, primero subila en Obras y archivos. El visitante decide cuándo escucharla.":
+    "First upload a song under Works and files. Visitors choose when to listen.",
+  "Guardar y recorrer en 3D": "Save and walk in 3D",
+  "Elegí una obra para editar su título, su cartela y su lugar en la sala.":
+    "Select a work to edit its title, wall label and position.",
+  "Los archivos del ejemplo se quedan en esta pestaña.":
+    "Files added to the example stay in this tab.",
+  "Los archivos que subís se pueden abrir por enlace directo, incluso en borrador. Subí material propio o con permiso.":
+    "Uploaded files can be opened by direct link even while your room is a draft. Only upload work you own or have permission to use.",
+  "Subida incompleta": "Incomplete upload",
+  "Las 100 salas del piloto ya tienen artista. Podés seguir visitando y guardando favoritos.":
+    "All 100 pilot rooms are taken. You can still visit exhibitions and save favorites.",
+  "Tu sala admite cuatro obras. Retirá una para subir otra.":
+    "Your room holds four works. Remove one to add another.",
   "Perfil y enlaces": "Profile and links",
   Salas: "Rooms",
   "El delta del Paraná, el río Colorado y los Andes vistos desde el espacio. Tres paisajes de la colección Earth As Art.":
@@ -116,14 +276,8 @@ const english = {
   "Mi sala": "My room",
   "Creá tu cuenta": "Create your account",
   "Ingresá a Umbral": "Sign in to Umbral",
-  "Guardá favoritos y conversá en el patio con una llave de acceso. Podés crear una sala cuando quieras. Elegí una llave sincronizada para usarla en otros dispositivos.":
-    "Save rooms and chat in the atrium with a passkey. You can create a room whenever you like. Choose a synced passkey to use it on other devices.",
-  "Usá la llave de acceso que guardaste al registrarte.":
-    "Use the passkey you saved when you signed up.",
   "Nombre público": "Display name",
   "Tu nombre o seudónimo": "Your name or artist name",
-  "Registrar llave de acceso": "Create passkey",
-  "Ingresar con mi llave": "Sign in with my passkey",
   "Ya tengo una cuenta": "I already have an account",
   "Crear una cuenta": "Create an account",
   "Esperando tu llave de acceso…": "Waiting for your passkey…",
@@ -160,8 +314,6 @@ const english = {
     "List my room in the public catalog",
   "Ver mi sala": "Preview my room",
   Obras: "Works",
-  "Hasta 8 obras de 12 MB cada una. El archivo se puede abrir con su enlace directo desde que lo subís. Subí material propio o con permiso.":
-    "Add up to eight works, up to 12 MiB each. Uploaded files are accessible by direct link. Upload work you own or have permission to share.",
   "Archivo de la obra": "Artwork file",
   "Título de la obra": "Artwork title",
   "Formatos y visualizadores": "Formats and viewers",
@@ -292,7 +444,6 @@ const english = {
   "Mirar sin bordes": "Enable free look",
   "En PC, mové el mouse para mirar y usá WASD para caminar. Podés activar la vista libre para girar sin llegar al borde de la pantalla. Escape libera el cursor. En el celular, usá el joystick izquierdo y mirá arrastrando con el otro pulgar. Tocá una obra para abrirla.":
     "On desktop, move the mouse to look and use WASD to walk. Enable free look to turn beyond the edge of the screen. Escape releases the cursor. On mobile, use the left joystick and drag with your other thumb to look. Select a work to open it.",
-  "El máximo es 12 MB por archivo.": "Each file can be up to 12 MiB.",
   "El máximo para código y texto es de 512 KiB.":
     "Code and text files can be up to 512 KiB.",
   "Elegí un archivo de texto UTF-8.": "Choose a UTF-8 text file.",
@@ -303,7 +454,6 @@ const english = {
     "This browser could not convert the image.",
   "Este formato todavía no tiene un visor. Consultá la lista de formatos.":
     "There is no viewer for this format yet. Check the supported formats.",
-  "Tu sala ya tiene ocho obras.": "Your room already has eight works.",
   "No se pudo abrir este archivo dentro del límite del visor.":
     "Could not open this file within the viewer limit.",
   "El archivo supera el límite del visor.":

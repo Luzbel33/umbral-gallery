@@ -1,4 +1,4 @@
-import {t} from "./i18n.js";
+import { t } from "./i18n.js";
 import * as T from "three";
 import { joinMeeting } from "./meeting.js";
 export async function joinVisitors(
@@ -8,6 +8,7 @@ export async function joinVisitors(
   yaw,
   onStatus,
   onEnd,
+  roomScale = 1,
 ) {
   const avatars = new Map(),
     body = new T.CapsuleGeometry(0.18, 0.65, 3, 8),
@@ -25,7 +26,11 @@ export async function joinVisitors(
   try {
     meeting = await joinMeeting(
       room,
-      () => ({ x: position.x, z: position.z, a: yaw() }),
+      () => ({
+        x: position.x / roomScale,
+        z: position.z / roomScale,
+        a: yaw(),
+      }),
       (peers, count) => {
         const ids = new Set(peers.map((p) => p.id));
         for (const [id, p] of avatars)
@@ -43,13 +48,13 @@ export async function joinVisitors(
             b.position.y = 0.88;
             h.position.y = 1.48;
             obj.add(b, h);
-            obj.position.set(p.x, 0, p.z);
+            obj.position.set(p.x * roomScale, 0, p.z * roomScale);
             scene.add(obj);
             a = { obj, to: new T.Vector3() };
             avatars.set(p.id, a);
             dirty = true;
           }
-          a.to.set(p.x, 0, p.z);
+          a.to.set(p.x * roomScale, 0, p.z * roomScale);
           if (a.obj.rotation.y !== p.a) {
             a.obj.rotation.y = p.a;
             dirty = true;

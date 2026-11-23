@@ -1,4 +1,4 @@
-import {t} from "./i18n.js";
+import { t } from "./i18n.js";
 import * as T from "three";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
 import { decodeMesh } from "./mesh.js";
@@ -19,11 +19,10 @@ export function geometryFrom(bytes) {
   g.computeVertexNormals();
   return g;
 }
-export function showModel(el, bytes) {
+export function showModel(el, bytes, orientation = 0) {
   const geometry = geometryFrom(bytes),
     renderer = new T.WebGLRenderer({ antialias: true, alpha: true });
-  el.innerHTML =
-    `<p>${t("Arrastrá para girar. Usá dos dedos o la rueda para acercarte.")}</p>`;
+  el.innerHTML = `<p>${t("Arrastrá para girar. Usá dos dedos o la rueda para acercarte.")}</p>`;
   el.append(renderer.domElement);
   renderer.domElement.className = "model-canvas";
   renderer.setPixelRatio(Math.min(devicePixelRatio, 1.5));
@@ -35,10 +34,9 @@ export function showModel(el, bytes) {
     side: T.DoubleSide,
     roughness: 0.62,
   });
-  scene.add(
-    new T.Mesh(geometry, mat),
-    new T.HemisphereLight(0xffffff, 0x676e88, 2),
-  );
+  const model = new T.Mesh(geometry, mat);
+  model.rotation.y = T.MathUtils.degToRad(orientation);
+  scene.add(model, new T.HemisphereLight(0xffffff, 0x676e88, 2));
   const lamp = new T.DirectionalLight(0xffe8cb, 3);
   lamp.position.set(2, 4, 3);
   scene.add(lamp);

@@ -2,36 +2,42 @@
 
 El cupo social global es de **120 visitantes, en grupos de seis**. La visita individual funciona sin reservar lugar. Las pruebas dejan abierta la cantidad de visitantes individuales simultáneos que podría sostener el plan gratuito. La transferencia de video, las cuotas mensuales y la concentración de las llegadas determinan cómo responde ante una publicación viral.
 
+## Espacio disponible para artistas
+
+El piloto tiene 100 salas, hasta cuatro obras por sala y ocho lugares posibles en el plano. La reserva de 6 MiB por artista más 200 MiB compartidos da un techo de 800 MiB en Storage. Una sala puede crecer hasta 48 MiB y cada archivo listo para subir hasta 32 MiB. Las miniaturas cuentan. Los enlaces de medios externos ocupan una obra y cero bytes del cupo de archivos.
+
+En Docker se aceptó la sala número 100 y se rechazó la 101. Con la bolsa compartida llena, otra sala pudo completar su reserva de 6 MiB. Dos subidas concurrentes de 25 MiB a la misma sala dejaron un archivo almacenado y 23 MiB disponibles. En Chrome, una muestra WAV de 4.608.078 bytes se preparó en 389.411 bytes y un MP4 de 9.216.746 bytes en 812.311 bytes. El resultado depende del original y del códec disponible en el dispositivo. El editor muestra el tamaño exacto de la copia preparada antes de confirmar.
+
 ## Prueba de carga aislada
 
-Fecha de la prueba: 2026-11-23. Docker local con 1.024 salas publicadas y 4.096 obras sintéticas. El gateway, la base, el servidor HTTP y el generador de tráfico compartieron la máquina. PostgreSQL tuvo un límite de 1 CPU y 512 MiB de RAM. Las funciones reutilizaron workers.
+Fecha de la prueba: 2026-11-23. Docker local con 100 salas publicadas y 400 obras sintéticas. El gateway, la base, el servidor HTTP y el generador de tráfico compartieron la máquina. PostgreSQL tuvo un límite de 1 CPU y 512 MiB de RAM. Las funciones reutilizaron workers.
 
 Chrome registró los recursos de cada entrada en frío. Los visitantes virtuales descargaron ese conjunto y consultaron la API pública correspondiente. La lectura de metadatos usa el reintento acotado de la aplicación. El recorrido inaugural fue Materia orbital. La sala del artista exhibía cuatro fotos subidas a Storage. Los tiempos miden transferencias HTTP locales. La simulación no incluyó miles de GPU, redes móviles ni la CDN de producción.
 
 | Escenario | Visitas completas | p95 de las visitas completas |
 | --- | ---: | ---: |
-| Catálogo, 100 de golpe | 100 / 100 | 2.065 ms |
-| Catálogo, 500 de golpe | 420 / 500 | 7.488 ms |
-| Catálogo, 1.000 de golpe | 780 / 1.000 | 13.726 ms |
-| Catálogo, 1.000 en 30 segundos | 1.000 / 1.000 | 3.010 ms |
-| Sala inaugural 3D, 100 de golpe | 100 / 100 | 1.898 ms |
-| Sala inaugural 3D, 500 de golpe | 332 / 500 | 7.590 ms |
-| Sala inaugural 3D, 1.000 de golpe | 556 / 1.000 | 11.065 ms |
-| Sala inaugural 3D, 1.000 en 30 segundos | 1.000 / 1.000 | 45 ms |
-| Sala de artista 3D, 100 de golpe | 100 / 100 | 3.532 ms |
-| Sala de artista 3D, 500 de golpe | 210 / 500 | 13.315 ms |
-| Sala de artista 3D, 1.000 de golpe | 203 / 1.000 | 15.040 ms |
-| Sala de artista 3D, 1.000 en 30 segundos | 1.000 / 1.000 | 256 ms |
+| Catálogo, 100 de golpe | 100 / 100 | 1.596 ms |
+| Catálogo, 500 de golpe | 420 / 500 | 5.016 ms |
+| Catálogo, 1.000 de golpe | 780 / 1.000 | 11.118 ms |
+| Catálogo, 1.000 en 30 segundos | 1.000 / 1.000 | 26 ms |
+| Sala inaugural 3D, 100 de golpe | 100 / 100 | 1.225 ms |
+| Sala inaugural 3D, 500 de golpe | 364 / 500 | 5.053 ms |
+| Sala inaugural 3D, 1.000 de golpe | 652 / 1.000 | 9.450 ms |
+| Sala inaugural 3D, 1.000 en 30 segundos | 1.000 / 1.000 | 32 ms |
+| Sala de artista 3D, 100 de golpe | 100 / 100 | 2.869 ms |
+| Sala de artista 3D, 500 de golpe | 202 / 500 | 8.912 ms |
+| Sala de artista 3D, 1.000 de golpe | 221 / 1.000 | 15.388 ms |
+| Sala de artista 3D, 1.000 en 30 segundos | 1.000 / 1.000 | 60 ms |
 
 En las ráfagas instantáneas hubo fallos de conexión o del gateway incluso con el catálogo en caché. Entrar directamente a una exhibición inaugural requiere sólo archivos estáticos. Ante una interrupción de la base o del catálogo comunitario, esas muestras siguen accesibles mientras responda el alojamiento estático.
 
 ## Transferencia y visitas compartidas
 
-Archivos estáticos del catálogo en frío: 331.885 bytes. Entrada 3D a Materia orbital: 690.824 bytes. La sala de artista transfirió 440.315 bytes, de los cuales 35.110 bytes correspondieron a miniaturas. Las mismas cuatro imágenes transferían 170.612 bytes antes. El audio, el video y las obras a tamaño completo se descargan a pedido. Los otros interiores inaugurales tienen modelos de distinto tamaño.
+Archivos estáticos del catálogo en frío: 338.843 bytes. Entrada 3D a Materia orbital: 698.807 bytes. La sala de artista transfirió 427.347 bytes, de los cuales 35.110 bytes correspondieron a miniaturas. Las mismas cuatro imágenes transferían 170.612 bytes antes. El audio, el video y las obras a tamaño completo se descargan a pedido. Los otros interiores inaugurales tienen modelos de distinto tamaño.
 
-De 160 solicitudes sociales simultáneas, 120 ingresaron en 20 grupos y 40 recibieron la respuesta de cupo completo. Se completaron 2.640 / 2.640 actualizaciones de movimiento, p95 11 ms. Con seis visitantes quietos y sin chat nuevo, el cuerpo de una respuesta midió 2 bytes. La actualización con posiciones nuevas midió 361 bytes en la muestra. Las cabeceras y TLS agregan transferencia. Las reservas vencen a los 100 segundos sin renovación.
+De 160 solicitudes sociales simultáneas, 120 ingresaron en 20 grupos y 40 recibieron la respuesta de cupo completo. Se completaron 2.640 / 2.640 actualizaciones de movimiento, p95 9 ms. Con seis visitantes quietos y sin chat nuevo, el cuerpo de una respuesta midió 2 bytes. La actualización con posiciones nuevas midió 361 bytes en la muestra. Las cabeceras y TLS agregan transferencia. Las reservas vencen a los 100 segundos sin renovación.
 
-La voz se verificó por separado entre dos cuentas. Se permite un hablante por grupo y hasta seis en total, con un presupuesto diario de 10.000 fragmentos por destinatario o 40 MiB estimados. Los canales de voz son opcionales. El chat y el movimiento utilizan consultas a la base.
+La voz se verificó por separado entre dos cuentas. Se permite un hablante por grupo y hasta seis en total, con un presupuesto diario de 10.000 fragmentos o 40 MiB estimados. Los canales de voz son opcionales. El chat y el movimiento utilizan consultas a la base.
 
 ## Qué consume una publicación viral
 

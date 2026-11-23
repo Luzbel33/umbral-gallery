@@ -31,12 +31,25 @@ export function toast(message) {
 export function failure(e) {
   if (e?.name === "NotAllowedError" || e?.code === "ERROR_CEREMONY_ABORTED")
     return t("Se canceló la llave de acceso. Podés volver a intentarlo.");
+  const message = String(e?.message || "");
+  const limits = {
+    PILOT_ARTISTS_FULL:
+      "Las 100 salas del piloto ya tienen artista. Podés seguir visitando y guardando favoritos.",
+    PILOT_WORKS_FULL:
+      "Tu sala admite cuatro obras. Retirá una para subir otra.",
+    PILOT_BYTES_FULL:
+      "Este archivo supera el espacio disponible. Elegí un archivo más liviano, retirá una obra o usá un enlace.",
+  };
+  for (const [key, copy] of Object.entries(limits))
+    if (message.includes(key)) return t(copy);
   return t(e?.message) || t("No se pudo completar. Volvé a intentarlo.");
 }
 export function media(w, thumbnail = false) {
   if (!["image", "audio", "video"].includes(w.type)) return "";
   if (w.type === "image")
     return `<img class="piece-image" src="${esc((thumbnail && w.preview) || w.url)}" alt="${esc(w.title)}" loading="lazy" decoding="async">`;
+  if (w.type === "audio")
+    return `<div class="sound-work"><div class="sound-face">${icon("headphones", 23)}<canvas width="320" height="68" aria-hidden="true"></canvas></div><audio crossorigin="anonymous" controls preload="none" src="${esc(w.url)}" aria-label="${esc(w.title)}"></audio></div>`;
   return `<${w.type} controls preload="none" ${w.type === "video" ? "playsinline" : ""} src="${esc(w.url)}" aria-label="${esc(w.title)}"></${w.type}>`;
 }
 export function fallback(r) {

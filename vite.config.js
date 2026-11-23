@@ -16,7 +16,7 @@ export default defineConfig(({ mode }) => {
     "media-src 'self' blob: " + api,
     "connect-src 'self' blob: " + api + " " + ws,
     "object-src 'none'",
-    "frame-src 'none'",
+    "frame-src https://www.youtube-nocookie.com https://player.vimeo.com https://w.soundcloud.com",
     "base-uri 'self'",
     "form-action 'self'",
   ].join("; ");

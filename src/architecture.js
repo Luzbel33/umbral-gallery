@@ -1,7 +1,9 @@
 import * as T from "three";
 import { RoomEnvironment } from "three/examples/jsm/environments/RoomEnvironment.js";
 import { art } from "./catalog.js";
-import { typeLabels, readBounded } from "./formats.js";
+import { wallLabel, mediaCover } from "./wall-label.js";
+import { sizes, positions } from "./installation.js";
+import { readBounded } from "./formats.js";
 
 export function sculpture() {
   const points = [],
@@ -66,6 +68,8 @@ export function surfaceTexture(wood) {
   return tex;
 }
 export function furnish(scene, renderer, r, isLive, invalidate) {
+  const roomScale = sizes[r.room_size] || 1;
+  let building = true;
   const env = new RoomEnvironment(),
     generator = new T.PMREMGenerator(renderer),
     target = generator.fromScene(env, 0.04);
@@ -118,13 +122,15 @@ export function furnish(scene, renderer, r, isLive, invalidate) {
   function contactShadow(x, y, z, width, depth) {
     const p = new T.Mesh(new T.PlaneGeometry(width, depth), contact);
     p.rotation.x = -Math.PI / 2;
-    p.position.set(x, y, z);
+    p.position.set(x * roomScale, y, z * roomScale);
+    p.scale.set(roomScale, roomScale, 1);
     scene.add(p);
   }
   function box(x, y, z, w, h, d, mat) {
     const mesh = new T.Mesh(unit, mat);
-    mesh.position.set(x, y, z);
-    mesh.scale.set(w, h, d);
+    const scale = building ? roomScale : 1;
+    mesh.position.set(x * scale, y, z * scale);
+    mesh.scale.set(w * scale, h, d * scale);
     mesh.castShadow = mesh.receiveShadow = true;
     scene.add(mesh);
     return mesh;
@@ -133,8 +139,8 @@ export function furnish(scene, renderer, r, isLive, invalidate) {
     const mesh = new T.InstancedMesh(unit, mat, list.length),
       o = new T.Object3D();
     list.forEach(([x, y, z, w, h, d], i) => {
-      o.position.set(x, y, z);
-      o.scale.set(w, h, d);
+      o.position.set(x * roomScale, y, z * roomScale);
+      o.scale.set(w * roomScale, h, d * roomScale);
       o.updateMatrix();
       mesh.setMatrixAt(i, o.matrix);
     });
@@ -171,8 +177,10 @@ export function furnish(scene, renderer, r, isLive, invalidate) {
     dark,
   );
   const glow = new T.MeshBasicMaterial({ color: 0xffecd2 });
-  const portal = new T.MeshBasicMaterial({ color: 0xd9fb87 });
+  const portal = material(0x796343, 0.38, 0.42);
   box(5.55, 1.43, -8.76, 1.68, 2.86, 0.18, dark);
+  box(5.55, 1.42, -8.65, 1.59, 2.79, 0.05, slats);
+  box(6.13, 1.14, -8.58, 0.045, 0.27, 0.09, portal);
   for (const x of [4.69, 6.41]) box(x, 1.45, -8.62, 0.055, 2.9, 0.08, portal);
   box(5.55, 2.92, -8.62, 1.77, 0.055, 0.08, portal);
   repeats(
@@ -186,9 +194,18 @@ export function furnish(scene, renderer, r, isLive, invalidate) {
     ]),
     glow,
   );
-  box(8.24, 3, 0, 0.08, 5.2, 18, new T.MeshBasicMaterial({ color: 0xded5c1 }));
+  // The daylight backdrop sits behind the glass and must not occlude the sun.
+  box(
+    8.24,
+    3,
+    0,
+    0.08,
+    5.2,
+    18,
+    new T.MeshBasicMaterial({ color: 0xded5c1 }),
+  ).castShadow = false;
   const sun = new T.DirectionalLight(0xffe6c6, 3.8);
-  sun.position.set(12, 9, 4);
+  sun.position.set(14, 6.9, 4);
   sun.target.position.set(-2, 0, -2);
   sun.castShadow = true;
   Object.assign(sun.shadow.camera, {
@@ -208,17 +225,8 @@ export function furnish(scene, renderer, r, isLive, invalidate) {
   contactShadow(4.1, 0.012, 1.8, 2.1, 5.4);
   box(4.1, 0.26, 0.45, 0.76, 0.52, 0.18, dark);
   box(4.1, 0.26, 3.15, 0.76, 0.52, 0.18, dark);
-  blocks.push([3.3, 4.95, -0.45, 4.0]);
-  const spots = [
-    [-3.1, -8.68, 0],
-    [2.4, -8.68, 0],
-    [-7.65, -4.6, Math.PI / 2],
-    [-7.65, 1, Math.PI / 2],
-    [-7.65, 5.7, Math.PI / 2],
-    [-3.8, 8.67, Math.PI],
-    [1, 8.67, Math.PI],
-    [5.6, 8.67, Math.PI],
-  ];
+  blocks.push([3.3, 4.95, -0.45, 4].map((v) => v * roomScale));
+  building = false;
   const works = r.works.filter((w) => w.ready !== false).slice(0, 8);
   const targets = [],
     models = [],
@@ -227,30 +235,17 @@ export function furnish(scene, renderer, r, isLive, invalidate) {
     toward = new T.Vector3(),
     loading = new AbortController();
   works.forEach((w, i) => {
-    const [x, z, yaw] = spots[w.slot ? w.slot - 1 : i],
+    const [x, z, yaw] = positions[w.slot ? w.slot - 1 : i],
       group = new T.Group();
     scene.add(group);
-    group.position.set(x, 2.2, z);
+    group.position.set(x * roomScale, 2.2, z * roomScale);
     group.rotation.y = yaw;
-    const label = document.createElement("canvas");
-    label.width = 512;
-    label.height = 110;
-    const ink = label.getContext("2d");
-    ink.fillStyle = "#e6e2d8";
-    ink.fillRect(0, 0, 512, 110);
-    ink.fillStyle = "#252821";
-    ink.font = "bold 32px sans-serif";
-    ink.fillText(w.title, 18, 43, 478);
-    ink.font = "24px sans-serif";
-    ink.fillText(r.artist, 18, 83, 478);
-    const labelTexture = new T.CanvasTexture(label);
-    labelTexture.colorSpace = T.SRGBColorSpace;
-    const plate = new T.Mesh(
-      new T.PlaneGeometry(0.68, 0.15),
-      new T.MeshBasicMaterial({ map: labelTexture }),
-    );
-    plate.position.set(1.36, -1.31, 0.09);
-    group.add(plate);
+    const bright = new T.Color(r.wall_color).getHSL({}).l > 0.3;
+    const plate = wallLabel(w, r.label_style, bright);
+    if (plate) {
+      plate.position.set(0.98, -1.34, 0.09);
+      group.add(plate);
+    }
     const frame = new T.Mesh(new T.BoxGeometry(3.43, 2.37, 0.12), dark);
     frame.castShadow = true;
     group.add(frame);
@@ -274,27 +269,34 @@ export function furnish(scene, renderer, r, isLive, invalidate) {
       tex.colorSpace = T.SRGBColorSpace;
       const ar = tex.image.width / tex.image.height;
       const width = Math.min(3.12, 2.06 * ar);
-      face.scale.set(width, width / ar, 1);
+      const height = width / ar;
+      face.scale.set(width, height, 1);
+      const border = w.type === "video" ? 0.065 : 0.16;
+      frame.scale.set(
+        (width + border * 2 + 0.06) / 3.43,
+        (height + border * 2 + 0.06) / 2.37,
+        1,
+      );
+      backing.scale.set(
+        (width + border * 2) / 3.28,
+        (height + border * 2) / 2.22,
+        1,
+      );
+      if (w.type === "video") backing.material.color.set(0x252a2b);
+      if (plate) {
+        plate.position.x = width / 2 - 0.59;
+        plate.position.y = -(height / 2 + border + 0.24);
+      }
+      if (w.type === "audio") {
+        frame.visible = false;
+        backing.visible = false;
+        face.position.z = 0.12;
+      }
       face.material.map = tex;
       face.material.needsUpdate = true;
       invalidate();
     };
-    const placard = () => {
-      const c = document.createElement("canvas");
-      c.width = 768;
-      c.height = 460;
-      const g = c.getContext("2d");
-      g.fillStyle = w.type === "audio" ? "#253854" : "#713f30";
-      g.fillRect(0, 0, c.width, c.height);
-      g.fillStyle = "#f2ddbd";
-      g.font = "500 48px sans-serif";
-      g.fillText(typeLabels[w.type], 60, 130, 640);
-      g.fillRect(60, 164, 648, 2);
-      g.font = "30px sans-serif";
-      g.fillStyle = "#fff";
-      g.fillText(w.title, 60, 356, 640);
-      install(new T.CanvasTexture(c));
-    };
+    const placard = () => install(mediaCover(w));
     if (w.type === "model") {
       frame.visible = backing.visible = face.visible = false;
       const center = new T.Vector3(0, -2.2, 1.12)
@@ -308,6 +310,12 @@ export function furnish(scene, renderer, r, isLive, invalidate) {
         center.z + 1.12,
       ]);
       models.push({ group, work: w, started: false });
+    } else if (w.type === "audio") {
+      placard();
+      const shelf = new T.Mesh(new T.BoxGeometry(3.37, 0.075, 0.36), slats);
+      shelf.position.set(0, -face.scale.y / 2 - 0.042, 0.06);
+      group.add(shelf);
+      if (plate) plate.position.y = -face.scale.y / 2 - 0.31;
     } else if (w.type === "image")
       images.push({
         group,
@@ -319,13 +327,15 @@ export function furnish(scene, renderer, r, isLive, invalidate) {
     else {
       placard();
     }
-    targets.push({ group, frame, work: w });
+    targets.push({ group, frame: w.type === "audio" ? face : frame, work: w });
   });
-  let activeImages = 0;
+  let activeImages = 0,
+    modelLoading = false;
   return {
     blocks,
     targets,
-    portal: new T.Vector3(5.55, 1.4, -8.35),
+    scale: roomScale,
+    portal: new T.Vector3(5.55 * roomScale, 1.4, -8.35 * roomScale),
     approach(position, camera) {
       camera.getWorldDirection(direction);
       for (const image of images) {
@@ -350,7 +360,16 @@ export function furnish(scene, renderer, r, isLive, invalidate) {
         );
       }
       for (const m of models)
-        if (!m.started && m.group.position.distanceToSquared(position) < 26) {
+        if (
+          !modelLoading &&
+          !m.started &&
+          (m.group.position.distanceToSquared(position) < 26 ||
+            toward
+              .subVectors(m.group.position, position)
+              .normalize()
+              .dot(direction) > 0.64)
+        ) {
+          modelLoading = true;
           m.started = true;
           void Promise.all([
             import("./model-view.js"),
@@ -366,7 +385,10 @@ export function furnish(scene, renderer, r, isLive, invalidate) {
                   side: T.DoubleSide,
                 }),
               );
+              item.castShadow = item.receiveShadow = true;
+              renderer.shadowMap.needsUpdate = true;
               item.scale.setScalar(0.82);
+              item.rotation.y = T.MathUtils.degToRad(m.work.orientation || 0);
               item.geometry.computeBoundingBox();
               item.position.set(
                 0,
@@ -380,7 +402,10 @@ export function furnish(scene, renderer, r, isLive, invalidate) {
               if (target) target.frame = item;
               invalidate();
             })
-            .catch(() => {});
+            .catch(() => {})
+            .finally(() => {
+              modelLoading = false;
+            });
         }
     },
     dispose: () => {

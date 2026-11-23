@@ -2,36 +2,42 @@
 
 The global social limit is **120 visitors in groups of six**. Individual browsing has no reserved seats. A free, guaranteed simultaneous audience cannot be inferred from these tests. Video transfer, monthly quotas and concentration of arrivals determine how a launch performs.
 
+## Artist storage
+
+The pilot has 100 artist rooms, four works per room and eight possible installation positions. Each artist has 6 MiB reserved. A further 200 MiB shared pool brings the overall Storage ceiling to 800 MiB. Each room can grow to 48 MiB, with at most 32 MiB per finished upload. Image previews count toward storage. An externally hosted media link uses one artwork place and no file storage.
+
+The isolated database accepted room 100 and denied room 101. Once the shared pool was full, another room could still use its 6 MiB reserve. Two simultaneous 25 MiB uploads to the same room left one stored file and 23 MiB available. Chrome prepared a 4,608,078-byte WAV as 389,411 bytes and a 9,216,746-byte MP4 as 812,311 bytes. Results vary with source content and browser codecs. The artist sees the prepared size before confirming.
+
 ## Isolated load test
 
-Run date: 2026-11-23. Docker on the development machine, 1,024 published rooms and 4,096 synthetic works. The gateway, database, static HTTP server and load generator shared the machine. PostgreSQL was limited to 1 CPU and 512 MiB of RAM. The edge runtime reused workers.
+Run date: 2026-11-23. Docker on the development machine, 100 published rooms and 400 synthetic works. The gateway, database, static HTTP server and load generator shared the machine. PostgreSQL was limited to 1 CPU and 512 MiB of RAM. The edge runtime reused workers.
 
 Chrome recorded the request set of each cold entry. Virtual visitors fetched that resource set and the applicable public API. Public metadata reads use the application's bounded retry. The 3D destination was Orbital Matter. The artist room displayed four uploaded images. These timings measure HTTP delivery on loopback. Thousands of GPUs, Internet transit and the production CDN were outside the test.
 
 | Arrival pattern | Completed visits | p95 of completed visits |
 | --- | ---: | ---: |
-| Catalogue, 100 at once | 100 / 100 | 2,065 ms |
-| Catalogue, 500 at once | 420 / 500 | 7,488 ms |
-| Catalogue, 1,000 at once | 780 / 1,000 | 13,726 ms |
-| Catalogue, 1,000 over 30 seconds | 1,000 / 1,000 | 3,010 ms |
-| Inaugural 3D room, 100 at once | 100 / 100 | 1,898 ms |
-| Inaugural 3D room, 500 at once | 332 / 500 | 7,590 ms |
-| Inaugural 3D room, 1,000 at once | 556 / 1,000 | 11,065 ms |
-| Inaugural 3D room, 1,000 over 30 seconds | 1,000 / 1,000 | 45 ms |
-| Artist 3D room, 100 at once | 100 / 100 | 3,532 ms |
-| Artist 3D room, 500 at once | 210 / 500 | 13,315 ms |
-| Artist 3D room, 1,000 at once | 203 / 1,000 | 15,040 ms |
-| Artist 3D room, 1,000 over 30 seconds | 1,000 / 1,000 | 256 ms |
+| Catalogue, 100 at once | 100 / 100 | 1,596 ms |
+| Catalogue, 500 at once | 420 / 500 | 5,016 ms |
+| Catalogue, 1,000 at once | 780 / 1,000 | 11,118 ms |
+| Catalogue, 1,000 over 30 seconds | 1,000 / 1,000 | 26 ms |
+| Inaugural 3D room, 100 at once | 100 / 100 | 1,225 ms |
+| Inaugural 3D room, 500 at once | 364 / 500 | 5,053 ms |
+| Inaugural 3D room, 1,000 at once | 652 / 1,000 | 9,450 ms |
+| Inaugural 3D room, 1,000 over 30 seconds | 1,000 / 1,000 | 32 ms |
+| Artist 3D room, 100 at once | 100 / 100 | 2,869 ms |
+| Artist 3D room, 500 at once | 202 / 500 | 8,912 ms |
+| Artist 3D room, 1,000 at once | 221 / 1,000 | 15,388 ms |
+| Artist 3D room, 1,000 over 30 seconds | 1,000 / 1,000 | 60 ms |
 
 An instantaneous burst produced socket or gateway failures even with a warmed catalogue. Opening a curated room directly requires static assets only. A temporary database or community catalogue failure leaves the inaugural exhibitions accessible while the static host is available.
 
 ## Transfer and shared visits
 
-Cold catalogue static files: 331,885 bytes. Orbital 3D entry: 690,824 bytes. The artist room transferred 440,315 bytes, including 35,110 bytes for image previews. The same source images previously transferred 170,612 bytes. Audio, video and full-resolution works are fetched on request. Other inaugural interiors have different model sizes.
+Cold catalogue static files: 338,843 bytes. Orbital 3D entry: 698,807 bytes. The artist room transferred 427,347 bytes, including 35,110 bytes for image previews. The same source images previously transferred 170,612 bytes. Audio, video and full-resolution works are fetched on request. Other inaugural interiors have different model sizes.
 
-Of 160 simultaneous social requests, 120 entered 20 groups and 40 received the full-capacity response. Movement updates completed 2,640 / 2,640 requests, p95 11 ms. A six-person update with all peers stationary and no new chat returned 2 payload bytes. A changed peer snapshot measured 361 bytes in the sample. Headers and TLS add overhead. Leases expire after 100 seconds without renewal.
+Of 160 simultaneous social requests, 120 entered 20 groups and 40 received the full-capacity response. Movement updates completed 2,640 / 2,640 requests, p95 9 ms. A six-person update with all peers stationary and no new chat returned 2 payload bytes. A changed peer snapshot measured 361 bytes in the sample. Headers and TLS add overhead. Leases expire after 100 seconds without renewal.
 
-Voice was verified separately between two accounts. The application permits one simultaneous speaker per group, up to six globally, with a daily allowance of 10,000 recipient packets or an estimated 40 MiB. Visitors use optional voice channels; chat and movement use separate database calls.
+Voice was verified separately between two accounts. The application permits one simultaneous speaker per group, up to six globally, with a daily allowance of 10,000 packets or an estimated 40 MiB. Visitors use optional voice channels; chat and movement use separate database calls.
 
 ## What a viral post can consume
 

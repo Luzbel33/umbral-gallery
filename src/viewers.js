@@ -1,6 +1,9 @@
-import {t} from "./i18n.js";
+import { t } from "./i18n.js";
 import { $, esc, dialog, panel, media, failure } from "./ui.js";
 import { readBounded, suffix, typeLabels } from "./formats.js";
+import { mediaLink } from "./media-link.js";
+import { stopMedia } from "./media-focus.js";
+import { workLine } from "./installation.js";
 import { icon } from "./icons.js";
 function tableRows(text, sep) {
   const rows = [];
@@ -56,14 +59,15 @@ function showText(el, bytes, file) {
   }
   el.innerHTML = "<pre tabindex='0'></pre>";
   $("pre", el).textContent =
-    text.slice(0, 180000) + (text.length > 180000 ? "\n… "+t("Vista abreviada") : "");
+    text.slice(0, 180000) +
+    (text.length > 180000 ? "\n… " + t("Vista abreviada") : "");
 }
 let cancel = null;
 export async function openPiece(w) {
   cancel?.();
   panel(
     w.title,
-    `<div class="file-view" id="file-view"><p role="status">${t("Abriendo")} ${esc(typeLabels[w.type] || t("obra"))}…</p></div>`,
+    `<div class="file-view" id="file-view"><p role="status">${t("Abriendo")} ${esc(typeLabels[w.type] || t("obra"))}…</p></div><div class="piece-notes">${workLine(w) ? `<strong>${esc(workLine(w))}</strong>` : ""}${w.caption ? `<p>${esc(w.caption)}</p>` : ""}</div>`,
     "viewer",
   );
   const el = $("#file-view"),
@@ -78,13 +82,21 @@ export async function openPiece(w) {
   cancel = end;
   dialog.addEventListener("close", end, { once: true });
   try {
+    if (w.external_url) {
+      const link = mediaLink(w.external_url);
+      if (!link) throw Error(t("Enlace no compatible."));
+      stopMedia();
+      el.innerHTML = `<iframe class="external-player" title="${esc(w.title)}" src="${esc(link.embed)}" referrerpolicy="strict-origin-when-cross-origin" sandbox="allow-scripts allow-same-origin allow-presentation allow-popups" allow="encrypted-media; fullscreen; picture-in-picture" allowfullscreen></iframe><a class="example-link" target="_blank" rel="noopener noreferrer" href="${esc(link.url)}">${t("Abrir en")} ${link.name} ↗</a>`;
+      cleanup = () => el.querySelector("iframe")?.remove();
+      return;
+    }
     if (["image", "audio", "video"].includes(w.type)) {
       el.innerHTML = media(w);
       return;
     }
     const bytes = await readBounded(
       w.url,
-      w.type === "source" ? 524288 : 12 * 1024 ** 2,
+      w.type === "source" ? 524288 : 32 * 1024 ** 2,
       controller.signal,
     );
     if (!el.isConnected || controller.signal.aborted) return;
@@ -92,7 +104,7 @@ export async function openPiece(w) {
     else if (w.type === "model") {
       const { showModel } = await import("./model-view.js");
       if (el.isConnected && !controller.signal.aborted)
-        cleanup = showModel(el, bytes);
+        cleanup = showModel(el, bytes, w.orientation);
     } else if (w.type === "document") {
       const pdf = await import("pdfjs-dist/build/pdf.mjs"),
         worker = (await import("pdfjs-dist/build/pdf.worker.min.mjs?url"))

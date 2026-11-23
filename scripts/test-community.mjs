@@ -2,6 +2,7 @@ import { chromium } from "playwright";
 import { expect } from "@playwright/test";
 import { createClient } from "@supabase/supabase-js";
 import { localStack, serveStage } from "../scripts/staging.mjs";
+import { randomBytes } from "node:crypto";
 import { readFile } from "node:fs/promises";
 const site = "http://localhost:5184/umbral-gallery/";
 const stack = localStack(),
@@ -18,9 +19,10 @@ const browser = await chromium.launch({
   ],
 });
 const actors = [],
-  tag = "QA piloto " + Date.now(),
+  tag = "qa_" + Date.now(),
+  secret = randomBytes(20).toString("hex"),
   errors = [];
-async function actor(mobile = false, credential = null) {
+async function actor(mobile = false) {
   const ctx = await browser.newContext({
     locale: "es-AR",
     viewport: mobile
@@ -30,24 +32,7 @@ async function actor(mobile = false, credential = null) {
     hasTouch: mobile,
     permissions: ["microphone"],
   });
-  const p = await ctx.newPage(),
-    cdp = await ctx.newCDPSession(p);
-  await cdp.send("WebAuthn.enable");
-  const { authenticatorId } = await cdp.send(
-    "WebAuthn.addVirtualAuthenticator",
-    {
-      options: {
-        protocol: "ctap2",
-        transport: "internal",
-        hasResidentKey: true,
-        hasUserVerification: true,
-        isUserVerified: true,
-        automaticPresenceSimulation: true,
-      },
-    },
-  );
-  if (credential)
-    await cdp.send("WebAuthn.addCredential", { authenticatorId, credential });
+  const p = await ctx.newPage();
   await p.addInitScript(() => {
     window.qaRMS = 0;
     window.qaTracks = [];
@@ -81,7 +66,7 @@ async function actor(mobile = false, credential = null) {
   });
   await p.goto(site);
   await p.locator("#catalog-title").waitFor();
-  return { ctx, p, cdp, authenticatorId };
+  return { ctx, p };
 }
 async function account(a, name, register = true) {
   const p = a.p;
@@ -91,8 +76,10 @@ async function account(a, name, register = true) {
       exact: true,
     })
     .click();
-  if (register) await p.locator("#auth-form input").fill(name);
+  await p.getByLabel("Usuario", { exact: true }).fill(name);
+  await p.locator("#auth-form [name=password]").fill(secret);
   await p.locator("#auth-form button[type=submit]").click();
+  if (register) await p.locator("#account-done").click({ timeout: 12000 });
   try {
     await expect(p.locator("#studio-label")).toHaveText("Mi espacio", {
       timeout: 20000,
@@ -164,8 +151,8 @@ try {
     .evaluate((i) => i.decode());
   await phone.screenshot({ path: ".qa/home-mobile.png", fullPage: true });
   await p.screenshot({ path: ".qa/home-desktop.png", fullPage: true });
-  const id = await account(a, tag + " A");
-  await account(b, tag + " B");
+  const id = await account(a, tag + "a");
+  await account(b, tag + "b");
   const guest = createClient(stack.url, stack.key, {
     auth: { persistSession: false },
   });
@@ -189,13 +176,8 @@ try {
     "aria-pressed",
     "true",
   );
-  const cred = (
-      await a.cdp.send("WebAuthn.getCredentials", {
-        authenticatorId: a.authenticatorId,
-      })
-    ).credentials[0],
-    other = await actor(true, cred);
-  await account(other, "", false);
+  const other = await actor(true);
+  await account(other, tag + "a", false);
   await other.p.locator("#saved-link").click();
   await expect(other.p.locator(".card").first()).toContainText(
     "Materia orbital",
@@ -237,39 +219,35 @@ try {
   await p
     .getByLabel("Red social", { exact: true })
     .fill("https://example.org/social");
+  await p.locator(".extra-social summary").click();
+  await p.locator("[name=social_url_2]").fill("https://example.com/portfolio");
+  await p.locator("[name=social_url_3]").fill("https://example.org/studio");
   await p.getByLabel("Mostrar mi sala").check();
   await p.locator("#room-form [type=submit]").click();
   await expect(p.locator("#room-form .form-status")).toHaveText(
     "Cambios guardados.",
   );
   await p.getByRole("button", { name: "Obras y archivos" }).click();
-  for (const [name, mimeType, buffer] of uploadFiles) {
+  async function upload(file) {
+    const [name, mimeType, buffer] = file;
+    const count = await p.locator(".work-row").count();
     await p
       .locator("#upload-form input[type=file]")
       .setInputFiles({ name, mimeType, buffer });
     await p.locator("#upload-form button[type=submit]").click();
-    try {
-      await expect(p.locator(".work-row")).toHaveCount(
-        uploadFiles.findIndex((f) => f[0] === name) + 1,
-        { timeout: 18000 },
-      );
-    } catch (e) {
-      console.log(
-        "Upload",
-        name,
-        await p.locator("#upload-form .form-status").innerText(),
-      );
-      throw e;
-    }
+    await expect(p.locator(".work-row")).toHaveCount(count + 1, {
+      timeout: 18000,
+    });
   }
-  await p.getByRole("button", { name: "Sala y enlaces" }).click();
-  await p.getByLabel("Música ambiente").selectOption({ label: "banda" });
-  await p.locator("#room-form [type=submit]").click();
-  await expect(p.locator("#room-form .form-status")).toHaveText(
-    "Cambios guardados.",
-  );
+  for (const file of uploadFiles.slice(0, 4)) await upload(file);
+  await expect(p.locator("#upload-form button[type=submit]")).toBeDisabled();
+  const fifth = await db
+    .from("works")
+    .insert({ room_id: id, slot: 8, extension: "txt", title: "Fifth work" });
+  if (!fifth.error?.message.includes("PILOT_WORKS_FULL"))
+    throw Error("Missing server-side work limit");
   await phone.goto(site + "?sala=" + id);
-  await expect(phone.locator(".pieces article")).toHaveCount(7);
+  await expect(phone.locator(".pieces article")).toHaveCount(4);
   await expect(phone.locator(".artist-profile")).toContainText(
     "Autor de la exposición de prueba.",
   );
@@ -306,7 +284,44 @@ try {
     }
     await phone.locator("[data-close]").click();
   }
-  await expect(phone.locator(".profile-links a")).toHaveCount(3);
+  await expect(phone.locator(".profile-links a")).toHaveCount(5);
+  p.on("dialog", (d) => d.accept());
+  for (const title of ["demo", "serie", "memoria"]) {
+    const count = await p.locator(".work-row").count();
+    await p
+      .locator(".work-row")
+      .filter({ has: p.getByText(title, { exact: true }) })
+      .locator("[data-remove]")
+      .click();
+    await expect(p.locator(".work-row")).toHaveCount(count - 1);
+  }
+  for (const file of uploadFiles.slice(4)) await upload(file);
+  await p.locator(".work-select").filter({ hasText: "pieza" }).click();
+  await p.locator(".mount-form [name=medium]").fill("Bronce");
+  await p.locator(".mount-form [name=year]").fill("2026");
+  await p.locator(".mount-form [name=orientation]").fill("73");
+  await p.locator(".mount-form [name=caption]").fill("Escultura plegada.");
+  await p.locator("[data-slot='8']").click();
+  await p.locator(".mount-form [type=submit]").click();
+  await expect(
+    p.locator(".work-select").filter({ hasText: "pieza" }),
+  ).toContainText("Entrada derecha");
+  await p.getByRole("button", { name: "Sala y enlaces" }).click();
+  await p.locator("[name=room_size]").selectOption("spacious");
+  await p
+    .getByLabel("Música ambiente", { exact: false })
+    .selectOption({ label: "banda" });
+  await p.locator("#room-form [type=submit]").click();
+  await expect(p.locator("#room-form .form-status")).toHaveText(
+    "Cambios guardados.",
+  );
+  // Public visitors may receive the previous exhibition for one catalogue cache interval.
+  await expect(async () => {
+    await phone.reload();
+    await expect(phone.locator(".pieces")).toContainText("Escultura plegada.", {
+      timeout: 1300,
+    });
+  }).toPass({ timeout: 45000, intervals: [2000, 5000, 10000] });
   const durations = await phone
     .locator(".pieces audio,.pieces video")
     .evaluateAll((els) =>
@@ -386,6 +401,7 @@ try {
   await p.locator("#sound").click();
   await expect(p.locator("#sound")).toHaveAttribute("aria-pressed", "true");
   await p.goto(site);
+  await expect(p.locator("#studio-label")).toHaveText("Mi espacio");
   await p.locator("#studio").click();
   await p.getByLabel("Mostrar mi sala").uncheck();
   await p.locator("#room-form [type=submit]").click();
@@ -393,7 +409,7 @@ try {
     "Cambios guardados.",
   );
   await p.getByRole("button", { name: "Obras y archivos" }).click();
-  p.on("dialog", (d) => d.accept());
+
   while (await p.locator("[data-remove]").count()) {
     const count = await p.locator("[data-remove]").count();
     await p.locator("[data-remove]").first().click();
@@ -425,10 +441,6 @@ try {
       const u = await db.auth.admin.getUserById(id);
       if (u.data?.user?.user_metadata.artist === label) {
         await db.auth.admin.deleteUser(id);
-        await db
-          .from("gallery_passkeys")
-          .delete()
-          .eq("identity", u.data.user.email.split("@")[0]);
       }
     }
   }

@@ -4,11 +4,14 @@ import "@fontsource/instrument-serif/latin-400.css";
 import "@fontsource/instrument-serif/latin-400-italic.css";
 import "./style.css";
 import "./community.css";
+import "./studio.css";
 import { exhibits, categories } from "./catalog.js";
 import { icon, categoryIcon } from "./icons.js";
 import { rooms, publicRoom } from "./public-gallery.js";
 import { projectUrl } from "./config.js";
-import { profile } from "./profile.js";
+import { profile, profileLinks } from "./profile.js";
+import { initializeMedia, stopMedia } from "./media-focus.js";
+import { workLine } from "./installation.js";
 import { typeLabels } from "./formats.js";
 import { openPiece } from "./viewers.js";
 import { patio, showPatio } from "./patio.js";
@@ -28,6 +31,7 @@ const mountIcons = (root) =>
   root
     .querySelectorAll("[data-icon]")
     .forEach((n) => (n.outerHTML = icon(n.dataset.icon)));
+initializeMedia();
 document.documentElement.lang = language;
 localizeShell(document);
 if ($("#gallery-home")) localizeShell($("#gallery-home").content);
@@ -213,6 +217,7 @@ function setSlide(n) {
 }
 async function catalog(more = false) {
   const ticket = ++version;
+  stopMedia();
   const savedView = params().get("vista") === "guardadas";
   const filter = (r) =>
     (!category || r.category === category) &&
@@ -261,8 +266,8 @@ async function catalog(more = false) {
 function detail(r) {
   const works = r.works.filter((w) => w.ready !== false);
   $("#main").innerHTML =
-    `<a data-nav href="./" class="crumb">${icon("back", 16)} ${t("Explorar salas")}</a><section class="detail"><div class="detail-cover">${r.cover ? `<img src="${esc(r.cover)}" alt="${esc(r.title)}">` : fallback(r)}</div><div class="detail-copy"><p class="kicker"><i></i> ${esc(t(r.category).toUpperCase())}</p><h1>${esc(r.title)}</h1><button type="button" class="by artist-jump">${icon("user", 15)} ${esc(r.artist)} ${icon("down", 13)}</button><p>${esc(r.description)}</p><div class="row"><a data-nav href="${href(r.id, true)}" class="primary">${icon("box")} ${t("Recorrer en 3D")}</a>${bookmark(r)}<button class="round" data-share aria-label="${t("Copiar enlace a la sala")}">${icon("copy")}</button></div></div></section><section class="works"><h2>${t("Obras en sala")}</h2><div class="pieces">${works.map((w, i) => `<article><div class="piece">${w.type === "image" ? `<button class="image-open" aria-label="${t("Ampliar")} ${esc(w.title)}" data-piece="${i}">${media(w, true)}</button>` : media(w)}</div><h3>${esc(w.title)}</h3></article>`).join("") || `<p>${t("El artista todavía está preparando sus obras.")}</p>`}</div></section>`;
-  $(".detail").insertAdjacentHTML("afterend", profile(r));
+    `<a data-nav href="./" class="crumb">${icon("back", 16)} ${t("Explorar salas")}</a><section class="detail"><div class="detail-cover">${r.cover ? `<img src="${esc(r.cover)}" alt="${esc(r.title)}">` : fallback(r)}</div><div class="detail-copy"><p class="kicker"><i></i> ${esc(t(r.category).toUpperCase())}</p><h1>${esc(r.title)}</h1><button type="button" class="by artist-jump">${icon("user", 15)} ${esc(r.artist)} ${icon("down", 13)}</button><p>${esc(r.description)}</p>${profileLinks(r)}<div class="row"><a data-nav href="${href(r.id, true)}" class="primary">${icon("box")} ${t("Recorrer en 3D")}</a>${r.demo || r.id === user?.id ? `<button type="button" class="secondary" ${r.demo ? "data-demo" : "data-exhibit"}>${icon("palette", 17)} ${t(r.demo ? "Probar el editor" : "Editar mi sala")}</button>` : ""}${bookmark(r)}<button class="round" data-share aria-label="${t("Copiar enlace a la sala")}">${icon("copy")}</button></div></div></section><section class="works"><h2>${t("Obras en sala")}</h2><div class="pieces">${works.map((w, i) => `<article><div class="piece">${w.type === "image" ? `<button class="image-open" aria-label="${t("Ampliar")} ${esc(w.title)}" data-piece="${i}">${media(w, true)}</button>` : w.external_url ? `<button class="file-tile" data-piece="${i}">${icon(w.type === "audio" ? "headphones" : "video", 32)} ${t(w.type === "audio" ? "Escuchar obra" : "Ver video")}</button>` : media(w)}</div><h3>${esc(w.title)}</h3>${workLine(w) ? `<small>${esc(workLine(w))}</small>` : ""}${w.caption ? `<p class="work-caption">${esc(w.caption)}</p>` : ""}</article>`).join("") || `<p>${t("El artista todavía está preparando sus obras.")}</p>`}</div></section>`;
+  $(".detail").insertAdjacentHTML("afterend", profile(r, false));
   $(".artist-jump").onclick = () => panel(t("Ficha del artista"), profile(r));
   const pieces = $(".pieces");
   Array.from(pieces.children).forEach((article, i) => {
@@ -301,6 +306,14 @@ async function route() {
   document.querySelector('meta[name="description"]').content = t(
     "Explorá arte, música, modelos 3D y proyectos de programación. Visitá el patio o creá una sala gratuita en Umbral desde tu navegador.",
   );
+  if (!id && p.has("guia")) {
+    const { guide } = await import("./guide.js");
+    if (ticket !== version) return;
+    $("#main").innerHTML = guide();
+    document.title = t("Cómo funciona") + " — Umbral";
+    window.scrollTo(0, 0);
+    return;
+  }
   if (!id) {
     $("#main").innerHTML = homeHTML;
     if (prior.searchParams.get("vista") !== p.get("vista")) category = "";
@@ -315,6 +328,9 @@ async function route() {
     try {
       const r =
         (id === "patio" ? patio : null) ||
+        (id === "taller"
+          ? (await import("./demo-studio.js")).exampleRoom()
+          : null) ||
         exhibits.find((r) => r.id === id) ||
         (uuid.test(id) ? await resolveRoom(id) : null);
       if (ticket !== version) return;
@@ -333,6 +349,15 @@ async function route() {
         walk = enterWalk(r, {
           exit: () => navigate(href(id)),
           openPiece,
+          editRoom:
+            r.demo || r.id === user?.id
+              ? () =>
+                  r.demo
+                    ? import("./studio.js").then((m) =>
+                        m.openStudio(null, route, navigate, true),
+                      )
+                    : showStudio()
+              : null,
           login: () => auth("login"),
         });
       } else if (id === "patio")
@@ -370,41 +395,26 @@ async function showStudio() {
     panel(t("Mi sala"), `<p>${esc(failure(e))}</p>`);
   }
 }
-function auth(mode, after) {
-  const reg = mode === "register";
-  panel(
-    reg ? t("Creá tu cuenta") : t("Ingresá a Umbral"),
-    `<form id="auth-form"><p>${reg ? t("Guardá favoritos y conversá en el patio con una llave de acceso. Podés crear una sala cuando quieras. Elegí una llave sincronizada para usarla en otros dispositivos.") : t("Usá la llave de acceso que guardaste al registrarte.")}</p>${reg ? `<label>${t("Nombre público")}<input name="label" required maxlength="48" autocomplete="nickname" placeholder="${t("Tu nombre o seudónimo")}"></label>` : ""}<p role="status" class="form-status"></p><button class="primary" type="submit">${icon("user")} ${reg ? t("Registrar llave de acceso") : t("Ingresar con mi llave")}</button></form><button class="text-btn switch">${reg ? t("Ya tengo una cuenta") : t("Crear una cuenta")}</button>`,
-  );
-  $(".switch").onclick = () => auth(reg ? "login" : "register", after);
-  $("#auth-form").onsubmit = async (e) => {
-    e.preventDefault();
-    const form = e.currentTarget,
-      btn = form.querySelector("[type=submit]");
-    btn.disabled = true;
-    const status = $(".form-status", form);
-    status.textContent = t("Esperando tu llave de acceso…");
-    try {
-      const pass = await import("./passkeys.js");
-      user = await pass.authenticate(mode, new FormData(form).get("label"));
-      accountUI();
-      restoreAuth();
-      if (dialog.open) dialog.close();
-      toast(
-        reg
-          ? t(
-              "Tu cuenta está lista. Podés guardar salas o abrir tu propio espacio.",
-            )
-          : t("Ya ingresaste a Umbral."),
-      );
-      await route();
-      if (after) await after();
-    } catch (err) {
-      status.textContent = failure(err);
-    } finally {
-      btn.disabled = false;
-    }
-  };
+async function auth(mode, after) {
+  try {
+    restoreAuth();
+    const { showAccount } = await import("./account.js");
+    showAccount(
+      mode,
+      async (person) => {
+        user = person;
+        accountUI();
+        restoreAuth();
+        if (dialog.open) dialog.close();
+        await route();
+        if (after) await after();
+        else toast(t("Ya ingresaste a Umbral."));
+      },
+      Boolean(after),
+    );
+  } catch (e) {
+    toast(failure(e));
+  }
 }
 $("#signin").onclick = async () => {
   if (!user) {
@@ -427,7 +437,21 @@ $("#signin").onclick = async () => {
     signOutButton.disabled = false;
   }
 };
-$("#studio").onclick = () => (user ? showStudio() : auth("register"));
+async function artistEntry(after) {
+  if (!user && hasSession()) {
+    try {
+      const { client } = await backend();
+      user = (await client.auth.getSession()).data.session?.user || null;
+      accountUI();
+    } catch (e) {
+      toast(failure(e));
+      return;
+    }
+  }
+  if (user) return showStudio();
+  return auth("register", after);
+}
+$("#studio").onclick = () => artistEntry();
 dialog.addEventListener("close", pauseMedia);
 document.addEventListener("click", async (e) => {
   const n = e.target.closest("a,button");
@@ -446,9 +470,17 @@ document.addEventListener("click", async (e) => {
     navigate(n.href);
     return;
   }
+  if (n.hasAttribute("data-demo")) {
+    try {
+      const { openStudio } = await import("./studio.js");
+      await openStudio(null, route, navigate, true);
+    } catch (e) {
+      toast(failure(e));
+    }
+    return;
+  }
   if (n.hasAttribute("data-exhibit")) {
-    if (user) void showStudio();
-    else auth("register", showStudio);
+    void artistEntry(showStudio);
     return;
   }
   if (n.hasAttribute("data-close")) dialog.close();

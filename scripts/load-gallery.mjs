@@ -62,7 +62,7 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const output = {
   created: new Date().toISOString(),
   environment: "Supabase Docker / loopback",
-  catalogRows: 1024,
+  catalogRows: 100,
   worksPerRoom: 4,
   results: [],
   bodies: {},
@@ -118,7 +118,7 @@ const galleryFiles = createClient(stack.url, stack.admin).storage.from(
 );
 let server;
 try {
-  sql(`with fixture as (insert into auth.users(id,email) select gen_random_uuid(),'load-'||i||'@umbral-benchmark.invalid' from generate_series(1,1024) i where not exists(select 1 from auth.users where email='load-'||i||'@umbral-benchmark.invalid') returning id,email)
+  sql(`with fixture as (insert into auth.users(id,email) select gen_random_uuid(),'load-'||i||'@umbral-benchmark.invalid' from generate_series(1,100) i where not exists(select 1 from auth.users where email='load-'||i||'@umbral-benchmark.invalid') returning id,email)
  insert into public.rooms(id,title,artist,category,published) select id,'Sala de carga '||split_part(email,'@',1),'Fixture de carga','Programación',true from fixture;
  insert into public.works(room_id,slot,title,extension,ready,source_name) select r.id,i,'Obra de prueba '||i,'txt',true,'demo.py' from public.rooms r cross join generate_series(1,4) i where r.artist='Fixture de carga' and not exists(select 1 from public.works w where w.room_id=r.id and w.slot=i);`);
   server = await serveStage();
