@@ -39,8 +39,10 @@ jobs:
         run: |
           set -euo pipefail
           tools="$ANDROID_HOME/cmdline-tools/latest/bin"
+          export PATH="$ANDROID_HOME/platform-tools:$PATH"
+          trap 'tail -30 "$RUNNER_TEMP/gallery-emulator.log" 2>/dev/null || true' ERR
           system='system-images;android-35;google_apis_playstore;x86_64'
-          "$tools/sdkmanager" --install "$system" > /dev/null
+          "$tools/sdkmanager" --install platform-tools emulator "$system" > /dev/null
           echo no | "$tools/avdmanager" create avd -n gallery -k "$system" --device pixel_7
           sudo setfacl -m "u:$(id -un):rw" /dev/kvm
           "$ANDROID_HOME/emulator/emulator" @gallery -no-window -no-snapshot -gpu swiftshader_indirect > "$RUNNER_TEMP/gallery-emulator.log" 2>&1 &
