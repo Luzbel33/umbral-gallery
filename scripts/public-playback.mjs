@@ -18,7 +18,21 @@ export async function checkPlayback(page, kind, hasTouch) {
       x: 18,
       y: kind === "audio" ? box.height / 2 : box.height - 18,
     };
-    if (hasTouch) await el.tap({ position });
+    if (hasTouch === "android") {
+      const session = await page.context().newCDPSession(page);
+      try {
+        await session.send("Input.dispatchTouchEvent", {
+          type: "touchStart",
+          touchPoints: [{ x: box.x + position.x, y: box.y + position.y }],
+        });
+        await session.send("Input.dispatchTouchEvent", {
+          type: "touchEnd",
+          touchPoints: [],
+        });
+      } finally {
+        await session.detach();
+      }
+    } else if (hasTouch) await el.tap({ position });
     else await el.click({ position });
     // Native control placement varies by OS. A trusted page gesture also
     // allows the native player API to start on browsers with autoplay limits.
@@ -95,25 +109,47 @@ if (
     ["iPhone touch WebKit", webkit, {}, devices["iPhone 13"]],
   ];
   const failures = [];
-  for (const [label, engine, options, device] of cases) {
-    const browser = await engine.launch(options);
-    try {
-      // A fresh visitor has no login, artist token or storage privilege.
-      const p = await browser.newPage({ ...device, locale: "es-AR" });
-      for (const [tag, example] of [
-        ["audio", "frecuencia"],
-        ["video", "intervalos"],
-      ]) {
-        try {
-          await p.goto(site + (id || example));
-          console.log(label, id || example);
-          await checkPlayback(p, tag, !!device.hasTouch);
-        } catch (e) {
-          failures.push(label + ": " + e.message);
-        }
+  async function visit(p, label, touch) {
+    for (const [tag, example] of [
+      ["audio", "frecuencia"],
+      ["video", "intervalos"],
+    ]) {
+      try {
+        await p.goto(site + (id || example));
+        console.log(label, id || example);
+        await checkPlayback(p, tag, touch);
+      } catch (e) {
+        failures.push(label + ": " + e.message);
       }
+    }
+  }
+  if (process.argv.includes("--android")) {
+    const browser = await chromium.connectOverCDP("http://127.0.0.1:9222");
+    try {
+      const p = await browser.contexts()[0].newPage();
+      if (
+        !(await p.evaluate(
+          () =>
+            navigator.userAgent.includes("Android") &&
+            navigator.maxTouchPoints > 0,
+        ))
+      )
+        throw Error("Expected Chrome running on Android");
+      console.log("Android Chrome", browser.version());
+      await visit(p, "Android", "android");
     } finally {
       await browser.close();
+    }
+  } else {
+    for (const [label, engine, options, device] of cases) {
+      const browser = await engine.launch(options);
+      try {
+        // A fresh visitor has no login, artist token or storage privilege.
+        const p = await browser.newPage({ ...device, locale: "es-AR" });
+        await visit(p, label, !!device.hasTouch);
+      } finally {
+        await browser.close();
+      }
     }
   }
   if (failures.length) throw Error(failures.join("\n"));
