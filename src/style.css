@@ -1014,3 +1014,7 @@ select {
     scroll-behavior: auto !important;
   }
 }
+.work-row select {
+  max-width: min(45%, 215px);
+  font-size: 12px;
+}

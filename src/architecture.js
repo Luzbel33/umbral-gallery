@@ -1,5 +1,6 @@
 import * as T from "three";
 import { RoomEnvironment } from "three/examples/jsm/environments/RoomEnvironment.js";
+import { art } from "./catalog.js";
 
 function sculpture(room) {
   if (room.id === "frecuencia")
@@ -65,7 +66,7 @@ function surfaceTexture(wood) {
   tex.colorSpace = T.SRGBColorSpace;
   return tex;
 }
-export function furnish(scene, renderer, r, isLive) {
+export function furnish(scene, renderer, r, isLive, invalidate) {
   const env = new RoomEnvironment(),
     generator = new T.PMREMGenerator(renderer),
     target = generator.fromScene(env, 0.04);
@@ -88,6 +89,39 @@ export function furnish(scene, renderer, r, isLive) {
     dark = material(0x282927, 0.52, 0.15),
     stone = material(0xc5b7a0, 0.55);
   const unit = new T.BoxGeometry(1, 1, 1);
+  const loader = new T.TextureLoader();
+  for (const [surface, file] of [
+    [wall, "formwork.webp"],
+    [stone, "travertine.webp"],
+  ]) {
+    surface.map = loader.load(art(file), invalidate);
+    surface.map.colorSpace = T.SRGBColorSpace;
+    surface.map.anisotropy = Math.min(
+      4,
+      renderer.capabilities.getMaxAnisotropy(),
+    );
+  }
+  // Soft contact shadows supplement the single baked-in-place directional shadow map.
+  const stamp = document.createElement("canvas");
+  stamp.width = stamp.height = 128;
+  const brush = stamp.getContext("2d"),
+    shade = brush.createRadialGradient(64, 64, 4, 64, 64, 64);
+  shade.addColorStop(0, "rgba(24,20,17,.68)");
+  shade.addColorStop(0.55, "rgba(24,20,17,.48)");
+  shade.addColorStop(1, "rgba(24,20,17,0)");
+  brush.fillStyle = shade;
+  brush.fillRect(0, 0, 128, 128);
+  const contact = new T.MeshBasicMaterial({
+    map: new T.CanvasTexture(stamp),
+    transparent: true,
+    depthWrite: false,
+  });
+  function contactShadow(x, y, z, width, depth) {
+    const p = new T.Mesh(new T.PlaneGeometry(width, depth), contact);
+    p.rotation.x = -Math.PI / 2;
+    p.position.set(x, y, z);
+    scene.add(p);
+  }
   function box(x, y, z, w, h, d, mat) {
     const mesh = new T.Mesh(unit, mat);
     mesh.position.set(x, y, z);
@@ -114,7 +148,18 @@ export function furnish(scene, renderer, r, isLive) {
   box(0, 3, 9, 16, 6, 0.28, wall);
   box(8, 0.45, 0, 0.3, 0.9, 18, wall);
   box(8, 5.5, 0, 0.3, 1, 18, wall);
-  box(0, 6.1, 0, 16, 0.2, 18, material(0xbcb7a9));
+  box(0, 6.1, 0, 16, 0.2, 18, material(0x817d73));
+  repeats(
+    Array.from({ length: 11 }, (_, i) => [
+      0,
+      5.78,
+      -8.5 + i * 1.7,
+      15.9,
+      0.28,
+      0.18,
+    ]),
+    material(0x989082, 0.82),
+  );
   repeats(
     Array.from({ length: 10 }, (_, i) => [
       7.96,
@@ -182,10 +227,12 @@ export function furnish(scene, renderer, r, isLive) {
   sun.shadow.mapSize.set(1024, 1024);
   sun.shadow.normalBias = 0.035;
   sun.shadow.bias = -0.0004;
-  scene.add(sun, sun.target, new T.HemisphereLight(0xfff4df, 0x5f5754, 1.65));
+  scene.add(sun, sun.target, new T.HemisphereLight(0xfff2df, 0x575654, 1.18));
   const blocks = [];
   if (r.curated) {
+    contactShadow(0, 0.012, -0.84, 6.3, 3.9);
     box(0, 0.19, -0.85, 3.85, 0.38, 2.35, stone);
+    contactShadow(0, 0.386, -0.85, 3.7, 1.6);
     blocks.push([-2.15, 2.15, -2.25, 0.55]);
     if (["orbital", "frecuencia"].includes(r.id)) {
       const object = new T.Mesh(
@@ -222,6 +269,7 @@ export function furnish(scene, renderer, r, isLive) {
     }
   }
   box(4.1, 0.56, 1.8, 1.1, 0.14, 3.9, slats);
+  contactShadow(4.1, 0.012, 1.8, 2.1, 5.4);
   box(4.1, 0.26, 0.45, 0.76, 0.52, 0.18, dark);
   box(4.1, 0.26, 3.15, 0.76, 0.52, 0.18, dark);
   blocks.push([3.3, 4.95, -0.45, 4.0]);
@@ -236,14 +284,32 @@ export function furnish(scene, renderer, r, isLive) {
     [5.6, 8.67, Math.PI],
   ];
   const works = r.works.filter((w) => w.ready !== false).slice(0, 8);
-  const loader = new T.TextureLoader(),
-    targets = [];
+  const targets = [];
   works.forEach((w, i) => {
-    const [x, z, yaw] = spots[i],
+    const [x, z, yaw] = spots[w.slot ? w.slot - 1 : i],
       group = new T.Group();
     scene.add(group);
     group.position.set(x, 2.2, z);
     group.rotation.y = yaw;
+    const label = document.createElement("canvas");
+    label.width = 512;
+    label.height = 110;
+    const ink = label.getContext("2d");
+    ink.fillStyle = "#e6e2d8";
+    ink.fillRect(0, 0, 512, 110);
+    ink.fillStyle = "#252821";
+    ink.font = "bold 32px sans-serif";
+    ink.fillText(w.title, 18, 43, 478);
+    ink.font = "24px sans-serif";
+    ink.fillText(r.artist, 18, 83, 478);
+    const labelTexture = new T.CanvasTexture(label);
+    labelTexture.colorSpace = T.SRGBColorSpace;
+    const plate = new T.Mesh(
+      new T.PlaneGeometry(0.68, 0.15),
+      new T.MeshBasicMaterial({ map: labelTexture }),
+    );
+    plate.position.set(1.36, -1.31, 0.09);
+    group.add(plate);
     const frame = new T.Mesh(new T.BoxGeometry(3.43, 2.37, 0.12), dark);
     frame.castShadow = true;
     group.add(frame);
@@ -270,6 +336,7 @@ export function furnish(scene, renderer, r, isLive) {
       face.scale.set(width, width / ar, 1);
       face.material.map = tex;
       face.material.needsUpdate = true;
+      invalidate();
     };
     const placard = () => {
       const c = document.createElement("canvas");

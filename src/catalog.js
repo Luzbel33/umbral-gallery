@@ -1,4 +1,4 @@
-const root = import.meta.env.BASE_URL;
+const root = import.meta.env?.BASE_URL || "/umbral-gallery/";
 export const art = (name) => root + "art/" + name;
 const entries = [
   [

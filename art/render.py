@@ -97,7 +97,9 @@ def ribbon(name, kind, material, position, radius=2):
                 v=(r*cos(a),.50*sin(4*a)+.25*sin(b),r*sin(a))
             verts.append(v)
             ix=i*sides+j
-            faces.append((ix,((i+1)%steps)*sides+j,((i+1)%steps)*sides+(j+1)%sides,i*sides+(j+1)%sides))
+            offset=sides//2 if kind=="orbit" and i==steps-1 else 0
+            next_ring=((i+1)%steps)*sides
+            faces.append((ix,next_ring+(j+offset)%sides,next_ring+(j+offset+1)%sides,i*sides+(j+1)%sides))
     mesh=bpy.data.meshes.new(name);mesh.from_pydata(verts,[],faces);mesh.update()
     o=bpy.data.objects.new(name,mesh);scene.collection.objects.link(o);o.location=position
     o.data.materials.append(material)

@@ -44,8 +44,9 @@ export function enterWalk(room, { exit, openPiece }) {
   renderer.toneMapping = T.ACESFilmicToneMapping;
   renderer.toneMappingExposure = 1.04;
   const camera = new T.PerspectiveCamera(62, 1, 0.08, 65);
-  camera.position.set(0, 1.62, 6.6);
+  camera.position.set(-1.35, 1.65, 6.6);
   camera.rotation.order = "YXZ";
+  camera.lookAt(0.05, 1.83, -0.8);
   const scene = new T.Scene();
   scene.background = new T.Color(0xd9d1c0);
   scene.fog = new T.FogExp2(0xd9d1c0, 0.024);
@@ -54,7 +55,13 @@ export function enterWalk(room, { exit, openPiece }) {
     socialPending = false,
     music = null,
     near = null;
-  const world = furnish(scene, renderer, room, () => live),
+  let dirty = true;
+  const invalidate = () => {
+    dirty = true;
+  };
+  const drawnPosition = new T.Vector3(),
+    drawnRotation = new T.Quaternion();
+  const world = furnish(scene, renderer, room, () => live, invalidate),
     keys = new Set(),
     ray = new T.Raycaster(),
     point = new T.Vector2();
@@ -77,6 +84,7 @@ export function enterWalk(room, { exit, openPiece }) {
     renderer.setSize(view.clientWidth, view.clientHeight, false);
     camera.aspect = view.clientWidth / Math.max(view.clientHeight, 1);
     camera.updateProjectionMatrix();
+    invalidate();
   };
   const observer = new ResizeObserver(resize);
   observer.observe(view);
@@ -174,6 +182,7 @@ export function enterWalk(room, { exit, openPiece }) {
     if (social) {
       social.dispose();
       social = null;
+      invalidate();
       b.setAttribute("aria-pressed", "false");
       $("span", b).textContent = "Caminar en compañía";
       return;
@@ -185,7 +194,7 @@ export function enterWalk(room, { exit, openPiece }) {
       if (!live) return;
       $("span", b).textContent = "Conectando…";
       b.setAttribute("aria-pressed", "true");
-      social = joinVisitors(
+      const session = await joinVisitors(
         room.id,
         scene,
         camera.position,
@@ -193,8 +202,20 @@ export function enterWalk(room, { exit, openPiece }) {
         (m) => {
           if (live) $("span", b).textContent = m;
         },
+        () => {
+          social = null;
+          invalidate();
+          if (live) {
+            b.setAttribute("aria-pressed", "false");
+            $("span", b).textContent = "Volver a conectar";
+          }
+        },
       );
+      if (!live) session.dispose();
+      else social = session;
     } catch (e) {
+      b.setAttribute("aria-pressed", "false");
+      $("span", b).textContent = "Caminar en compañía";
       toast(failure(e));
     } finally {
       socialPending = false;
@@ -252,8 +273,18 @@ export function enterWalk(room, { exit, openPiece }) {
           : icon("eye") + " Ver obra";
       }
       $("#inspect").hidden = !near && !atDoor;
-      social?.tick(time, dt);
-      renderer.render(scene, camera);
+      const peersMoved = social?.tick(time, dt);
+      if (
+        dirty ||
+        peersMoved ||
+        !drawnPosition.equals(camera.position) ||
+        !drawnRotation.equals(camera.quaternion)
+      ) {
+        renderer.render(scene, camera);
+        drawnPosition.copy(camera.position);
+        drawnRotation.copy(camera.quaternion);
+        dirty = false;
+      }
     } else keys.clear();
     if (live && !document.hidden) frame = requestAnimationFrame(draw);
   }

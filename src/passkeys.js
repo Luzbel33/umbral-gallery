@@ -30,7 +30,9 @@ export async function authenticate(mode, label) {
   const { token_hash } = await invoke({ step: "finish", ticket, credential });
   const { data, error } = await client.auth.verifyOtp({
     token_hash,
-    type: "magiclink",
+    // A first-time identity receives a signup challenge; returning identities
+    // receive a login challenge. Auth accepts both through the email OTP type.
+    type: "email",
   });
   if (error) throw error;
   return data.user;

@@ -15,11 +15,14 @@ import {
   pauseMedia,
 } from "./ui.js";
 
-document
-  .querySelectorAll("[data-icon]")
-  .forEach((n) => (n.outerHTML = icon(n.dataset.icon)));
+const mountIcons = (root) =>
+  root
+    .querySelectorAll("[data-icon]")
+    .forEach((n) => (n.outerHTML = icon(n.dataset.icon)));
+mountIcons(document);
+if ($("#gallery-home")) mountIcons($("#gallery-home").content);
 const backend = () => import("./backend.js");
-const homeHTML = $("#main").innerHTML;
+const homeHTML = $("#gallery-home")?.innerHTML || $("#main").innerHTML;
 let saved = [];
 try {
   saved = JSON.parse(localStorage.getItem("umbral:guardadas") || "[]")
@@ -35,9 +38,19 @@ let slide = 0,
   walk = null,
   lastURL = location.href;
 const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-const params = () => new URL(location.href).searchParams;
+const params = () => {
+  const url = new URL(location.href);
+  const id = url.pathname.match(/\/salas\/([a-z]+)\/?$/)?.[1];
+  if (id && !url.searchParams.has("sala")) url.searchParams.set("sala", id);
+  return url.searchParams;
+};
 const href = (id, walking = false) =>
-  "?sala=" + encodeURIComponent(id) + (walking ? "&modo=3d" : "");
+  !walking && exhibits.some((r) => r.id === id)
+    ? import.meta.env.BASE_URL + "salas/" + id + "/"
+    : import.meta.env.BASE_URL +
+      "?sala=" +
+      encodeURIComponent(id) +
+      (walking ? "&modo=3d" : "");
 function navigate(url) {
   history.pushState({}, "", url);
   void route();
@@ -246,16 +259,20 @@ $("#signin").onclick = async () => {
     auth("login");
     return;
   }
+  const signOutButton = $("#signin");
+  signOutButton.disabled = true;
   try {
     const { client } = await backend();
     const { error } = await client.auth.signOut({ scope: "local" });
     if (error) throw error;
     user = null;
     accountUI();
-    void route();
+    await route();
     toast("Cerraste sesión.");
   } catch (e) {
     toast(failure(e));
+  } finally {
+    signOutButton.disabled = false;
   }
 };
 $("#studio").onclick = () => (user ? showStudio() : auth("register"));

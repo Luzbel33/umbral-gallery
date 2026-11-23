@@ -125,3 +125,6 @@ export async function deleteWork(w) {
     await client.from("works").delete().eq("id", w.id).select("id").single(),
   );
 }
+export async function placeWork(id, destination) {
+  unwrap(await client.rpc("place_gallery_work", { work_key: id, destination }));
+}

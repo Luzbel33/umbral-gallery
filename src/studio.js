@@ -1,4 +1,10 @@
-import { readRoom, saveRoom, uploadWork, deleteWork } from "./backend.js";
+import {
+  readRoom,
+  saveRoom,
+  uploadWork,
+  deleteWork,
+  placeWork,
+} from "./backend.js";
 import { categories } from "./catalog.js";
 import { icon } from "./icons.js";
 import { $, esc, dialog, panel, failure, toast } from "./ui.js";
@@ -7,6 +13,19 @@ const options = (values, active) =>
   values
     .map((v) => `<option ${v === active ? "selected" : ""}>${esc(v)}</option>`)
     .join("");
+const positions = [
+  "Fondo izquierdo",
+  "Fondo derecho",
+  "Lateral izquierdo · fondo",
+  "Lateral izquierdo · centro",
+  "Lateral izquierdo · entrada",
+  "Entrada izquierda",
+  "Entrada central",
+  "Entrada derecha",
+];
+function placement(w) {
+  return `<select aria-label="Posición de ${esc(w.title)}" data-place="${esc(w.id)}" ${w.ready ? "" : "disabled"}>${positions.map((p, i) => `<option value="${i + 1}" ${i + 1 === w.slot ? "selected" : ""}>${p}</option>`).join("")}</select>`;
+}
 export async function openStudio(user, refresh, navigate) {
   if (!user) throw Error("Ingresá para editar tu sala.");
   let room = await readRoom(user.id);
@@ -36,7 +55,7 @@ export async function openStudio(user, refresh, navigate) {
     $("#work-list").innerHTML = room.works
       .map(
         (w) =>
-          `<div class="work-row">${icon(w.type === "audio" ? "audio" : w.type === "video" ? "video" : "palette", 17)}<span>${esc(w.title)}${w.ready ? "" : " · Subida incompleta"}</span><button type="button" data-remove="${esc(w.id)}" aria-label="Retirar ${esc(w.title)}">${icon("trash", 17)}</button></div>`,
+          `<div class="work-row">${icon(w.type === "audio" ? "audio" : w.type === "video" ? "video" : "palette", 17)}<span>${esc(w.title)}${w.ready ? "" : " · Subida incompleta"}</span>${placement(w)}<button type="button" data-remove="${esc(w.id)}" aria-label="Retirar ${esc(w.title)}">${icon("trash", 17)}</button></div>`,
       )
       .join("");
     music.innerHTML =
@@ -116,6 +135,21 @@ export async function openStudio(user, refresh, navigate) {
     } catch (err) {
       $(".form-status", up).textContent = failure(err);
       b.disabled = false;
+    }
+  };
+  $("#work-list").onchange = async (e) => {
+    const select = e.target.closest("[data-place]");
+    if (!select) return;
+    const track = room.works.find((w) => w.slot === Number(music.value))?.id;
+    select.disabled = true;
+    try {
+      await placeWork(select.dataset.place, Number(select.value));
+      await reloadWorks();
+      music.value = String(room.works.find((w) => w.id === track)?.slot ?? "");
+      toast("Posición guardada.");
+    } catch (err) {
+      $(".form-status", up).textContent = failure(err);
+      list(music.value);
     }
   };
   dialog.addEventListener(
