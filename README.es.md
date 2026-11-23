@@ -36,11 +36,11 @@ Entr√° al patio desde el men√∫ en modo web o 3D. Tambi√©n pod√©s activar **Camin
 
 El cupo global es de 120 visitas sociales, de a seis por grupo. Al llenarse se conserva la visita individual. La capacidad observada, el coste de las descargas y los presupuestos de la voz est√°n en el [informe de pruebas de carga](CAPACIDAD.md).
 
-### Verificar el almacenamiento y la reproducciÛn
+### Verificar el almacenamiento y la reproducci√≥n
 
-En una cuenta temporal de Cloudinary, el titular ingresa su correo en el enlace privado y lo confirma desde el mensaje recibido. Hasta entonces, la entrega est· restringida por IP. Conserv· desactivada la ampliaciÛn del cupo hasta verificar las subidas y su reproducciÛn desde otra red. [ConfirmaciÛn de Cloudinary](https://cloudinary.com/documentation/claimable_cloud_provisioning)
+En una cuenta temporal de Cloudinary, el titular ingresa su correo en el enlace privado y lo confirma desde el mensaje recibido. Hasta entonces, la entrega est√° restringida por IP. Conserv√° desactivada la ampliaci√≥n del cupo hasta verificar las subidas y su reproducci√≥n desde otra red. [Confirmaci√≥n de Cloudinary](https://cloudinary.com/documentation/claimable_cloud_provisioning)
 
-Con el proyecto vinculado y las herramientas de Supabase y GitHub autenticadas, ejecut· `node scripts/test-cloud-media.mjs --deployed --independent`. La prueba sube un MP3 y un MP4, publica la sala temporal, entra como visitante sin cuenta, reproduce ambas obras, adelanta y confirma que siguen avanzando. TambiÈn repite la reproducciÛn desde macOS con Chrome de escritorio y perfiles mÛviles de Pixel y iPhone. Al terminar retira las obras y libera el cupo. Para verificar el proveedor que usa un artista com˙n, agreg· `--active-storage`. El procedimiento de activaciÛn est· en el [README principal](README.md).
+Con el proyecto vinculado y las herramientas de Supabase y GitHub autenticadas, ejecut√° `node scripts/test-cloud-media.mjs --deployed --independent`. La prueba sube un MP3 y un MP4, publica la sala temporal, entra como visitante sin cuenta, reproduce ambas obras, adelanta y confirma que siguen avanzando. Tambi√©n repite la reproducci√≥n desde macOS con Chrome de escritorio y perfiles m√≥viles de Pixel y iPhone. Al terminar retira las obras y libera el cupo. Para verificar el proveedor que usa un artista com√∫n, agreg√° `--active-storage`. El procedimiento de activaci√≥n est√° en el [README principal](README.md).
 
 ## Desarrollo y publicaci√≥n
 

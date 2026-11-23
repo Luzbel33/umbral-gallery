@@ -10,6 +10,14 @@ The isolated database accepted room 100 and denied room 101. Once the shared poo
 
 With Cloudinary enabled the 100 rooms can each reserve 48 MiB of media, for a combined 4,800 MiB (4.6875 GiB). The isolated database test fills each room and rejects its next byte. A 33,554,432-byte MP4 reached Cloudinary through the staging endpoint. A 256-byte body sent against that reservation was rejected. PDFs and legacy files use the original storage pool and count towards the room total. Media playback uses Cloudinary bandwidth.
 
+### Production playback on November 23, 2026
+
+The production editor uploaded an MP3 and MP4 to the active Supabase bucket from desktop and touch Chrome. Signed-out visitors played both, sought forward and resumed. A macOS runner on a separate network repeated playback in desktop Chrome, a Pixel Chrome profile and an iPhone WebKit profile. These mobile profiles emulate devices. [Public playback results](https://github.com/Luzbel33/umbral-gallery/actions/runs/45290580799)
+
+With optimization enabled, desktop Chrome prepared a 2,304,078-byte WAV as 195,201 bytes and a 3,900,515-byte MP4 as 2,000,288 bytes. The stored bytes matched the editor estimate. The optimized files also passed playback and seeking in all three guest profiles. [Optimized media results](https://github.com/Luzbel33/umbral-gallery/actions/runs/45291139827)
+
+On the same date, the Cloudinary probe room accepted the uploads, but the independent visitor received HTTP 401 from the CDN. The public rollout stayed disabled pending account confirmation and a successful repeat of the visitor check. [Cloudinary probe results](https://github.com/Luzbel33/umbral-gallery/actions/runs/45290604826)
+
 ## Isolated load test
 
 Run date: 2026-11-23. Docker on the development machine, 100 published rooms and 400 synthetic works. The gateway, database, static HTTP server and load generator shared the machine. PostgreSQL was limited to 1 CPU and 512 MiB of RAM. The edge runtime reused workers.

@@ -8,6 +8,14 @@ El piloto tiene 100 salas, hasta cuatro obras por sala y ocho lugares posibles e
 
 En Docker se aceptó la sala número 100 y se rechazó la 101. Con la bolsa compartida llena, otra sala pudo completar su reserva de 6 MiB. Dos subidas concurrentes de 25 MiB a la misma sala dejaron un archivo almacenado y 23 MiB disponibles. En Chrome, una muestra WAV de 4.608.078 bytes se preparó en 389.411 bytes y un MP4 de 9.216.746 bytes en 812.311 bytes. El resultado depende del original y del códec disponible en el dispositivo. El editor muestra el tamaño exacto de la copia preparada antes de confirmar.
 
+### Reproducción en producción el 23 de noviembre de 2026
+
+El editor publicado subió un MP3 y un MP4 a Supabase desde Chrome de escritorio y desde un perfil táctil. Visitantes sin cuenta pudieron reproducir ambos archivos, adelantar y seguir escuchando o viendo la obra. Desde otra red en macOS se repitió la prueba en Chrome de escritorio, Chrome con perfil Pixel y WebKit con perfil iPhone. Los perfiles móviles son emulados. [Prueba pública de reproducción](https://github.com/Luzbel33/umbral-gallery/actions/runs/45290580799)
+
+Con la optimización activada, Chrome de escritorio preparó un WAV de 2.304.078 bytes en 195.201 bytes y un MP4 de 3.900.515 bytes en 2.000.288 bytes. El espacio descontado coincidió con el que mostró el editor. Los tres perfiles pudieron reproducir y adelantar estas versiones. [Prueba de las versiones optimizadas](https://github.com/Luzbel33/umbral-gallery/actions/runs/45291139827)
+
+Ese día la sala de prueba de Cloudinary aceptó las subidas y su CDN respondió HTTP 401 al visitante desde otra red. La ampliación del cupo público quedó pendiente de la confirmación de la cuenta y de repetir la prueba de reproducción con éxito. [Resultado de la prueba en Cloudinary](https://github.com/Luzbel33/umbral-gallery/actions/runs/45290604826)
+
 ## Prueba de carga aislada
 
 Fecha de la prueba: 2026-11-23. Docker local con 100 salas publicadas y 400 obras sintéticas. El gateway, la base, el servidor HTTP y el generador de tráfico compartieron la máquina. PostgreSQL tuvo un límite de 1 CPU y 512 MiB de RAM. Las funciones reutilizaron workers.
