@@ -34,18 +34,85 @@ const types: Record<string, string> = {
   txt: "text/plain",
   mesh: "application/octet-stream",
 };
-const chunkSize = 6 * 1024 ** 2;
 const fields =
   "id,room_id,extension,cloud_bytes,preview_bytes,cloud_url,preview_url,ready";
 const credentials = Deno.env.get("CLOUDINARY_URL");
 const cloud = credentials ? new URL(credentials) : null;
 
+// Only terminate the multipart body after receiving exactly the bytes reserved in PostgreSQL.
+function multipart(
+  req: Request,
+  size: number,
+  fields: Record<string, string>,
+  mime: string,
+) {
+  if (
+    !req.body ||
+    (req.headers.has("content-length") &&
+      Number(req.headers.get("content-length")) !== size)
+  )
+    throw Error("size");
+  const boundary = "umbral-" + crypto.randomUUID();
+  const encode = (s: string) => new TextEncoder().encode(s);
+  const prefix = encode(
+    Object.entries(fields)
+      .map(
+        ([k, v]) =>
+          "--" +
+          boundary +
+          '\r\nContent-Disposition: form-data; name="' +
+          k +
+          '"\r\n\r\n' +
+          v +
+          "\r\n",
+      )
+      .join("") +
+      "--" +
+      boundary +
+      '\r\nContent-Disposition: form-data; name="file"; filename="work"\r\nContent-Type: ' +
+      mime +
+      "\r\n\r\n",
+  );
+  const end = encode("\r\n--" + boundary + "--\r\n"),
+    reader = req.body.getReader();
+  let seen = 0;
+  const body = new ReadableStream<Uint8Array>({
+    start(controller) {
+      controller.enqueue(prefix);
+    },
+    async pull(controller) {
+      const { done, value } = await reader.read();
+      if (done) {
+        if (seen !== size) throw Error("size");
+        controller.enqueue(end);
+        controller.close();
+        return;
+      }
+      seen += value.length;
+      if (seen > size) {
+        await reader.cancel();
+        throw Error("size");
+      }
+      controller.enqueue(value);
+    },
+    cancel(reason) {
+      return reader.cancel(reason);
+    },
+  });
+  return {
+    body,
+    headers: {
+      "Content-Type": "multipart/form-data; boundary=" + boundary,
+      "Content-Length": String(prefix.length + size + end.length),
+    },
+  };
+}
+
 async function provider(
   type: string,
   action: string,
   parameters: Record<string, string>,
-  file?: Blob,
-  extra?: Record<string, string>,
+  file?: { req: Request; size: number; mime: string },
 ) {
   if (!cloud) throw Error("unconfigured");
   parameters.timestamp = String(Math.floor(Date.now() / 1000));
@@ -58,17 +125,16 @@ async function provider(
     "SHA-256",
     new TextEncoder().encode(signed),
   );
-  const data = new FormData();
-  for (const [key, value] of Object.entries(parameters))
-    data.append(key, value);
-  data.append("api_key", decodeURIComponent(cloud.username));
-  data.append(
-    "signature",
-    Array.from(new Uint8Array(hash), (x) =>
+  const fields = {
+    ...parameters,
+    api_key: decodeURIComponent(cloud.username),
+    signature: Array.from(new Uint8Array(hash), (x) =>
       x.toString(16).padStart(2, "0"),
     ).join(""),
-  );
-  if (file) data.append("file", file, "asset");
+  };
+  const payload = file
+    ? multipart(file.req, file.size, fields, file.mime)
+    : { body: new URLSearchParams(fields) };
   const response = await fetch(
     "https://api.cloudinary.com/v1_1/" +
       cloud.hostname +
@@ -76,44 +142,30 @@ async function provider(
       type +
       "/" +
       action,
-    {
-      method: "POST",
-      body: data,
-      headers: extra,
-      signal: AbortSignal.timeout(50000),
-    },
+    { method: "POST", ...payload, signal: AbortSignal.timeout(90000) },
   );
   if (!response.ok) {
-    console.warn("Cloudinary", action, type, response.status);
+    const data = await response.json().catch(() => ({})),
+      message = String(data?.error?.message || "");
+    console.warn(
+      "Cloudinary",
+      action,
+      type,
+      response.status,
+      /signature/i.test(message)
+        ? "signature"
+        : /format|invalid video|invalid image/i.test(message)
+          ? "format"
+          : /size|too large/i.test(message)
+            ? "size"
+            : /permission|denied/i.test(message)
+              ? "permission"
+              : "transfer",
+    );
     throw Error("provider");
   }
   return await response.json();
 }
-
-async function boundedBody(req: Request, length: number) {
-  if (
-    (req.headers.has("content-length") &&
-      Number(req.headers.get("content-length")) !== length) ||
-    !req.body
-  )
-    throw Error("size");
-  const reader = req.body.getReader(),
-    bytes = new Uint8Array(length);
-  let at = 0;
-  for (;;) {
-    const { value, done } = await reader.read();
-    if (done) break;
-    if (at + value.length > length) {
-      await reader.cancel();
-      throw Error("size");
-    }
-    bytes.set(value, at);
-    at += value.length;
-  }
-  if (at !== length) throw Error("size");
-  return bytes;
-}
-
 Deno.serve(async (req) => {
   if (req.headers.get("origin") !== origin) return reply(403, "origin");
   if (req.method === "OPTIONS")
@@ -194,35 +246,18 @@ Deno.serve(async (req) => {
     if (!total || (preview && w.extension !== "webp"))
       return reply(400, "input");
     if (preview ? w.preview_url : w.cloud_url) return reply(200);
-    const offset = Number(q.get("offset") || 0);
-    if (
-      !Number.isSafeInteger(offset) ||
-      offset < 0 ||
-      offset >= total ||
-      offset % chunkSize !== 0
-    )
-      return reply(400, "size");
-    const length = Math.min(chunkSize, total - offset),
-      last = offset + length === total;
-    const bytes = await boundedBody(req, length);
     const resourceType = preview ? "image" : type,
       id = preview ? base + "-preview" : mainId;
-    const partHeaders =
-      total > chunkSize
-        ? {
-            "X-Unique-Upload-Id": work + (preview ? "-preview" : ""),
-            "Content-Range":
-              "bytes " + offset + "-" + (offset + length - 1) + "/" + total,
-          }
-        : undefined;
     const result = await provider(
       resourceType,
       "upload",
       { public_id: id, overwrite: "false", backup: "false" },
-      new Blob([bytes], { type: types[preview ? "webp" : w.extension] }),
-      partHeaders,
+      {
+        req,
+        size: total,
+        mime: types[preview ? "webp" : w.extension],
+      },
     );
-    if (!last) return reply(200);
     if (
       result.public_id !== id ||
       result.resource_type !== resourceType ||

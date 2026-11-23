@@ -8,7 +8,7 @@ The pilot has 100 artist rooms, four works per room and eight possible installat
 
 The isolated database accepted room 100 and denied room 101. Once the shared pool was full, another room could still use its 6 MiB reserve. Two simultaneous 25 MiB uploads to the same room left one stored file and 23 MiB available. Chrome prepared a 4,608,078-byte WAV as 389,411 bytes and a 9,216,746-byte MP4 as 812,311 bytes. Results vary with source content and browser codecs. The artist sees the prepared size before confirming.
 
-With Cloudinary enabled the 100 rooms can each reserve 48 MiB of media, for a combined 4,800 MiB (4.6875 GiB). The isolated database test fills each room and rejects its next byte. PDFs and legacy files use the original storage pool and count towards the room total. Media playback uses Cloudinary bandwidth.
+With Cloudinary enabled the 100 rooms can each reserve 48 MiB of media, for a combined 4,800 MiB (4.6875 GiB). The isolated database test fills each room and rejects its next byte. A 33,554,432-byte MP4 reached Cloudinary through the staging endpoint. A 256-byte body sent against that reservation was rejected. PDFs and legacy files use the original storage pool and count towards the room total. Media playback uses Cloudinary bandwidth.
 
 ## Isolated load test
 

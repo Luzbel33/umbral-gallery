@@ -1,6 +1,5 @@
 import { projectUrl, publicKey } from "./config.js";
 
-const chunkSize = 6 * 1024 ** 2;
 async function request(client, id, op, options = {}, body) {
   const { data, error } = await client.auth.getSession();
   if (error || !data.session) throw Error("MEDIA_ACCOUNT");
@@ -39,14 +38,7 @@ export async function uploadCloudWork(client, file, title, item) {
   });
   if (error) throw error;
   async function send(blob, preview) {
-    for (let offset = 0; offset < blob.size; offset += chunkSize)
-      await request(
-        client,
-        id,
-        "upload",
-        { offset: String(offset), preview: preview ? "1" : "0" },
-        blob.slice(offset, offset + chunkSize, "application/octet-stream"),
-      );
+    await request(client, id, "upload", { preview: preview ? "1" : "0" }, blob);
   }
   try {
     await send(item.blob, false);

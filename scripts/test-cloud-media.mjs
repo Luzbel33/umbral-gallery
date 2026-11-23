@@ -84,9 +84,14 @@ try {
         await p.locator("#upload-form [name=optimize]").uncheck();
         await p.locator("#upload-form [type=submit]").click();
         try {
-          await expect(p.locator(".work-row")).toHaveCount(index + 1, {
-            timeout: 90000,
-          });
+          const status = p.locator("#upload-form .form-status");
+          await expect(status).not.toHaveText(
+            "Preparando y subiendo el archivo…",
+            { timeout: 100000 },
+          );
+          if (!(await status.textContent()).includes("Obra subida."))
+            throw Error("Upload feedback: " + (await status.textContent()));
+          await expect(p.locator(".work-row")).toHaveCount(index + 1);
         } catch (e) {
           console.log(
             name,
@@ -133,15 +138,28 @@ try {
           if (device.hasTouch) await el.tap({ position: point });
           else await el.click({ position: point });
           await el.evaluate((media) =>
-            media.paused ? media.play() : undefined,
+            Promise.race([
+              media.paused ? media.play() : Promise.resolve(),
+              new Promise((_, reject) =>
+                setTimeout(() => reject(Error("play timed out")), 12000),
+              ),
+            ]),
           );
+          await expect
+            .poll(() => el.evaluate((m) => (m.error ? -1 : m.currentTime)), {
+              timeout: 12000,
+            })
+            .toBeGreaterThan(0.25);
         } catch (e) {
           console.log(
             name,
             tag,
             e.message,
             await el.evaluate(async (m) => {
-              const r = await fetch(m.currentSrc || m.src, { method: "HEAD" });
+              const r = await fetch(m.currentSrc || m.src, {
+                headers: { Range: "bytes=0-1" },
+              });
+              await r.body?.cancel();
               return {
                 status: r.status,
                 type: r.headers.get("content-type"),
@@ -154,11 +172,6 @@ try {
           playbackErrors.push(tag);
           continue;
         }
-        await expect
-          .poll(() => el.evaluate((m) => (m.error ? -1 : m.currentTime)), {
-            timeout: 12000,
-          })
-          .toBeGreaterThan(0.25);
         await el.evaluate((m) => m.pause());
       }
       await p.locator("#studio").click();
