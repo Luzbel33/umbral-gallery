@@ -1,5 +1,26 @@
 import { test, expect } from "@playwright/test";
 
+test("removing the last image and recording leaves a sculpture-only room", async ({ page }) => {
+  await page.goto("./?sala=taller&lang=es");
+  await page.locator("[data-demo]").click();
+  await page.locator('[data-studio-tab="works"]').click();
+  await expect(page.locator(".budget-help")).toContainText("2 MB");
+  page.on("dialog", (dialog) => dialog.accept());
+  for (const id of ["study", "track"]) {
+    await page.locator(`[data-remove="${id}"]`).click();
+  }
+  await expect(page.locator("#quota")).toHaveText("1 / 4");
+  await page.locator("#panel [data-close]").click();
+  await expect(page.locator(".pieces article")).toHaveCount(1);
+  await expect(page.locator(".pieces")).toContainText("Abanico de cobre");
+  await expect(page.locator(".detail-cover .room-art")).toBeVisible();
+  await expect(page.locator(".detail-cover img, .room-art > *, .pieces img, .pieces audio, .pieces video")).toHaveCount(0);
+  await page.getByRole("link", { name: "Recorrer en 3D" }).click();
+  await page.locator("#artist-card").click();
+  await expect(page.locator(".artist-index [data-piece]")).toHaveCount(1);
+  await expect(page.locator(".artist-index")).toContainText("Abanico de cobre");
+});
+
 test("walk and turn with two thumbs, then release the analog stick", async ({
   page,
   isMobile,

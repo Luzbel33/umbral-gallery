@@ -170,7 +170,7 @@ try {
       const initialBudget = await ownerBudget(session);
       const usage = p.locator("#storage-usage");
       await expect(usage).toContainText("Disponibles ahora");
-      if (initialBudget.cloud) await expect(usage).toContainText("48 MiB");
+      if (initialBudget.cloud) await expect(usage).toContainText(/50[.,]33 MB/);
       if (
         initialBudget.used !== 0 ||
         initialBudget.available < 6 * 1024 ** 2 ||
@@ -191,7 +191,7 @@ try {
         await p.locator("#upload-form [name=optimize]").setChecked(optimize);
         const estimate = p.locator("#file-estimate");
         await expect(estimate).toContainText("Se subirán", { timeout: 120000 });
-        const bytes = (await estimate.textContent()).match(/\(([\d.,\s]+) B\)/);
+        const bytes = (await estimate.getAttribute("title"))?.match(/^([\d.,\s]+) B$/);
         if (!bytes) throw Error("Missing exact upload estimate");
         preparedSizes.push(Number(bytes[1].replace(/\D/g, "")));
         await p.locator("#upload-form [type=submit]").click();
@@ -309,7 +309,7 @@ try {
           timeout: 30000,
         });
       }
-      if (cloud) await expect(usage).toContainText("48 MiB");
+      if (cloud) await expect(usage).toContainText(/50[.,]33 MB/);
       const finalBudget = await ownerBudget(session);
       if (
         finalBudget.used !== 0 ||

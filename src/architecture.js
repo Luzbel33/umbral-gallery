@@ -246,21 +246,34 @@ export function furnish(scene, renderer, r, isLive, invalidate) {
       plate.position.set(0.98, -1.34, 0.09);
       group.add(plate);
     }
-    const frame = new T.Mesh(new T.BoxGeometry(3.43, 2.37, 0.12), dark);
-    frame.castShadow = true;
-    group.add(frame);
-    const backing = new T.Mesh(
-      new T.PlaneGeometry(3.28, 2.22),
-      material(0xe2d9c4),
-    );
-    backing.position.z = 0.065;
-    group.add(backing);
+    if (w.type === "model") {
+      group.visible = false;
+      const target = { group, frame: group, work: w };
+      targets.push(target);
+      models.push({ group, target, work: w, started: false });
+      return;
+    }
+    const picture = w.type === "image";
+    const video = w.type === "video";
+    const rim = picture || video ? new T.Mesh(unit, dark) : null;
+    if (rim) {
+      rim.castShadow = true;
+      group.add(rim);
+    }
+    const mat = picture
+      ? new T.Mesh(new T.PlaneGeometry(1, 1), material(0xe2d9c4))
+      : null;
+    if (mat) {
+      mat.position.z = 0.065;
+      group.add(mat);
+    }
     const face = new T.Mesh(
       new T.PlaneGeometry(1, 1),
       new T.MeshBasicMaterial({ color: 0xffffff }),
     );
-    face.position.z = 0.074;
+    face.position.z = w.type === "audio" ? 0.12 : 0.074;
     group.add(face);
+    group.visible = !picture;
     const install = (tex) => {
       if (!isLive()) {
         tex.dispose();
@@ -271,63 +284,31 @@ export function furnish(scene, renderer, r, isLive, invalidate) {
       const width = Math.min(3.12, 2.06 * ar);
       const height = width / ar;
       face.scale.set(width, height, 1);
-      const border = w.type === "video" ? 0.065 : 0.16;
-      frame.scale.set(
-        (width + border * 2 + 0.06) / 3.43,
-        (height + border * 2 + 0.06) / 2.37,
-        1,
-      );
-      backing.scale.set(
-        (width + border * 2) / 3.28,
-        (height + border * 2) / 2.22,
-        1,
-      );
-      if (w.type === "video") backing.material.color.set(0x252a2b);
+      const border = picture ? 0.16 : video ? 0.065 : 0;
+      if (rim)
+        rim.scale.set(width + border * 2 + 0.06, height + border * 2 + 0.06, 0.12);
+      if (mat) mat.scale.set(width + border * 2, height + border * 2, 1);
       if (plate) {
         plate.position.x = width / 2 - 0.59;
         plate.position.y = -(height / 2 + border + 0.24);
       }
-      if (w.type === "audio") {
-        frame.visible = false;
-        backing.visible = false;
-        face.position.z = 0.12;
-      }
       face.material.map = tex;
       face.material.needsUpdate = true;
+      group.visible = true;
       invalidate();
     };
-    const placard = () => install(mediaCover(w));
-    if (w.type === "model") {
-      frame.visible = backing.visible = face.visible = false;
-      const center = new T.Vector3(0, -2.2, 1.12)
-        .applyAxisAngle(new T.Vector3(0, 1, 0), yaw)
-        .add(group.position);
-      box(center.x, 0.54, center.z, 1.84, 1.08, 1.84, stone);
-      blocks.push([
-        center.x - 1.12,
-        center.x + 1.12,
-        center.z - 1.12,
-        center.z + 1.12,
-      ]);
-      models.push({ group, work: w, started: false });
-    } else if (w.type === "audio") {
-      placard();
+    if (picture) {
+      images.push({ group, url: w.preview || w.url, install, started: false });
+    } else {
+      install(mediaCover(w));
+    }
+    if (w.type === "audio") {
       const shelf = new T.Mesh(new T.BoxGeometry(3.37, 0.075, 0.36), slats);
       shelf.position.set(0, -face.scale.y / 2 - 0.042, 0.06);
       group.add(shelf);
       if (plate) plate.position.y = -face.scale.y / 2 - 0.31;
-    } else if (w.type === "image")
-      images.push({
-        group,
-        url: w.preview || w.url,
-        install,
-        placard,
-        started: false,
-      });
-    else {
-      placard();
     }
-    targets.push({ group, frame: w.type === "audio" ? face : frame, work: w });
+    targets.push({ group, frame: rim || face, work: w });
   });
   let activeImages = 0,
     modelLoading = false;
@@ -355,7 +336,6 @@ export function furnish(scene, renderer, r, isLive, invalidate) {
           undefined,
           () => {
             activeImages--;
-            if (isLive()) image.placard();
           },
         );
       }
@@ -398,8 +378,14 @@ export function furnish(scene, renderer, r, isLive, invalidate) {
                 1.12,
               );
               m.group.add(item);
-              const target = targets.find((target) => target.work === m.work);
-              if (target) target.frame = item;
+              const center = m.group.localToWorld(new T.Vector3(0, 0, 1.12));
+              box(center.x, 0.54, center.z, 1.84, 1.08, 1.84, stone);
+              blocks.push([
+                center.x - 1.12, center.x + 1.12,
+                center.z - 1.12, center.z + 1.12,
+              ]);
+              m.target.frame = item;
+              m.group.visible = true;
               invalidate();
             })
             .catch(() => {})

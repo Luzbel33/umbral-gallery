@@ -44,6 +44,7 @@ export function failure(e) {
       "Las 100 salas del piloto ya tienen artista. Podés seguir visitando y guardando favoritos.",
     PILOT_WORKS_FULL:
       "Tu sala admite cuatro obras. Retirá una para subir otra.",
+    PILOT_IMAGE_FULL: "La imagen preparada debe pesar como máximo 2 MB.",
     PILOT_BYTES_FULL:
       "Este archivo supera el espacio disponible. Elegí un archivo más liviano, retirá una obra o usá un enlace.",
   };
@@ -60,5 +61,5 @@ export function media(w, thumbnail = false) {
   return `<${w.type} controls preload="none" ${w.type === "video" ? "playsinline" : ""} src="${esc(w.url)}" aria-label="${esc(w.title)}"></${w.type}>`;
 }
 export function fallback(r) {
-  return `<div class="room-art" style="--room:${/^#[a-f0-9]{6}$/i.test(r.wall_color) ? r.wall_color : "#8b847d"}"><i></i><b></b><span></span></div>`;
+  return `<div class="room-art" aria-hidden="true" style="--room:${/^#[a-f0-9]{6}$/i.test(r.wall_color) ? r.wall_color : "#8b847d"}"></div>`;
 }

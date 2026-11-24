@@ -1,4 +1,4 @@
-import { t, language } from "./i18n.js";
+import { t, language, fileSize } from "./i18n.js";
 import {
   studioRoom,
   prepare,
@@ -91,10 +91,10 @@ export async function openStudio(user, refresh, navigate, demo = false) {
       )}<details class="extra-social" ${room.social_url_2 || room.social_url_3 ? "open" : ""}><summary>${t("Otras redes sociales")}</summary>${[2, 3].map((n) => `<label>${t("Red social")} ${n}<input type="url" name="social_url_${n}" maxlength="420" placeholder="https://…" value="${esc(room["social_url_" + n])}"></label>`).join("")}</details></fieldset>
     <label class="checkline" ${demo ? "hidden" : ""}><input type="checkbox" name="published" ${room.published ? "checked" : ""}> ${t("Mostrar mi sala en el catálogo público")}</label>
     <div class="row"><button class="primary" type="submit">${t("Guardar sala")}</button><button class="secondary" type="button" id="preview-room">${t("Guardar y recorrer en 3D")} ${icon("external", 15)}</button></div><p class="form-status" role="status"></p>${demo ? "" : `<button type="button" id="release-room" class="text-btn" hidden>${t("Eliminar mi sala vacía y liberar el cupo")}</button>`}</form>
-    <section class="studio-section"><h3>${t("Obras")} <span id="quota"></span></h3><p class="usage" id="storage-usage"></p><details class="budget-help"><summary>${t("Cómo se calcula el espacio")}</summary><p>${t(demo || room.cloud ? "Cada sala tiene 48 MiB propios entre obras y miniaturas. Cada archivo admite hasta 32 MiB. Los PDF usan el espacio para documentos que ves al elegir el archivo." : "Cada artista tiene 6 MiB reservados. Podés llegar a 48 MiB por sala usando la bolsa compartida de 200 MiB. El máximo por archivo listo es 32 MiB. Los enlaces no gastan espacio de archivos.")}</p></details><p>${t("Elegí una obra para editar su título, su cartela y su lugar en la sala.")}</p><div class="row add-art"><button type="button" class="secondary" data-jump="upload-form">${icon("upload", 16)} ${t("Subir un archivo")}</button><button type="button" class="secondary" data-jump="link-form">${icon("external", 16)} ${t("Usar un enlace")}</button></div><div id="work-list"></div><div id="mount-editor"></div>
+    <section class="studio-section"><h3>${t("Obras")} <span id="quota"></span></h3><p class="usage" id="storage-usage"></p><details class="budget-help"><summary>${t("Cómo se calcula el espacio")}</summary><p>${t(demo || room.cloud ? "Tenés 50,33 MB para hasta cuatro obras, incluidas las miniaturas. Cada foto se ajusta a 2 MB como máximo. Un audio o video puede ocupar hasta 33,55 MB si queda espacio en la sala. Al elegir un PDF vas a ver el espacio disponible para documentos." : "Tenés 6,29 MB reservados y podés llegar a 50,33 MB usando el espacio compartido. Cada foto se ajusta a 2 MB como máximo. Un archivo puede ocupar hasta 33,55 MB si queda espacio. Los enlaces no gastan espacio de archivos.")}</p></details><p>${t("Elegí una obra para editar su título, su cartela y su lugar en la sala.")}</p><div class="row add-art"><button type="button" class="secondary" data-jump="upload-form">${icon("upload", 16)} ${t("Subir un archivo")}</button><button type="button" class="secondary" data-jump="link-form">${icon("external", 16)} ${t("Usar un enlace")}</button></div><div id="work-list"></div><div id="mount-editor"></div>
     <form id="upload-form"><h3>${t("Subir un archivo")}</h3><p>${t("Cada archivo o enlace ocupa uno de los cuatro lugares. Las miniaturas se incluyen en el espacio usado.")}</p>
     <small>${demo ? t("Los archivos del ejemplo se quedan en esta pestaña.") : t("Los archivos que subís se pueden abrir por enlace directo, incluso en borrador. Subí material propio o con permiso.")}</small><label>${t("Archivo de la obra")}<input name="file" type="file" required accept="${fileAccept}"></label><label>${t("Título de la obra")}<input name="title" required maxlength="80"></label>
-    <label class="checkline" id="compress-option" hidden><input type="checkbox" name="optimize" checked> ${t("Optimizar audio o video en mi dispositivo")}</label><p id="file-estimate" role="status"></p><details><summary>${t("Formatos y visualizadores")}</summary><p>${t("Imágenes JPG, PNG, WebP, AVIF, BMP y primer cuadro de GIF. Video MP4, WebM, MOV y OGV. Audio MP3, Ogg/Opus, WAV, FLAC y M4A. La reproducción depende del códec del navegador.")}</p><p>${t("Modelos GLB, glTF autocontenido, STL, OBJ y PLY ASCII. Se conserva geometría estática y color base compatible, hasta 60.000 triángulos. Los modelos se pueden girar y acercar.")}</p><p>${t("PDF página por página, CSV y TSV como tablas. Código, HTML, SVG, Markdown, JSON, cuadernos Jupyter y otros archivos de texto se leen como texto UTF-8 de hasta 512 KiB. Para una demo interactiva agregá su enlace en Sala.")}</p></details>
+    <label class="checkline" id="compress-option" hidden><input type="checkbox" name="optimize" checked> ${t("Optimizar audio o video en mi dispositivo")}</label><p id="file-estimate" role="status"></p><details><summary>${t("Formatos y visualizadores")}</summary><p>${t("Imágenes JPG, PNG, WebP, AVIF, BMP y primer cuadro de GIF. Video MP4, WebM, MOV y OGV. Audio MP3, Ogg/Opus, WAV, FLAC y M4A. La reproducción depende del códec del navegador.")}</p><p>${t("Modelos GLB, glTF autocontenido, STL, OBJ y PLY ASCII. Se conserva geometría estática y color base compatible, hasta 60.000 triángulos. Los modelos se pueden girar y acercar.")}</p><p>${t("PDF página por página, CSV y TSV como tablas. Código, HTML, SVG, Markdown, JSON, cuadernos Jupyter y otros archivos de texto se leen como texto UTF-8 de hasta 524 kB. Para una demo interactiva agregá su enlace en Sala.")}</p></details>
     <button class="secondary" type="submit">${icon("upload")} ${t("Subir obra")}</button><p role="status" class="form-status"></p></form>
     <form id="link-form"><h3>${t("Agregar una obra por enlace")}</h3><p>${t("Para piezas largas, pegá un video de YouTube o Vimeo, o una pista de SoundCloud. Ocupa un lugar y cero bytes de tu cupo.")}</p><label>${t("Enlace a la obra")}<input type="url" required name="url" placeholder="https://…" maxlength="420"></label><label>${t("Título de la obra")}<input required name="title" maxlength="80"></label><button class="secondary" type="submit">${t("Agregar enlace")}</button><p role="status" class="form-status"></p></form></section>`,
     "studio",
@@ -119,16 +119,7 @@ export async function openStudio(user, refresh, navigate, demo = false) {
       t.setAttribute("aria-pressed", t === b);
     }
   };
-  const links = $("#link-form"),
-    used = (n) =>
-      n < 1024
-        ? n + " B"
-        : n < 1024 ** 2
-          ? (n / 1024).toLocaleString(language, { maximumFractionDigits: 1 }) +
-            " KiB"
-          : (n / 1024 ** 2).toLocaleString(language, {
-              maximumFractionDigits: 2,
-            }) + " MiB";
+  const links = $("#link-form");
   let prepared = null,
     preparation = null,
     uploading = false;
@@ -149,6 +140,7 @@ export async function openStudio(user, refresh, navigate, demo = false) {
     const controller = new AbortController();
     preparation = controller;
     prepared = null;
+    estimate.removeAttribute("title");
     syncButtons();
     const file = up.elements.file.files[0];
     $("#compress-option").hidden =
@@ -160,7 +152,7 @@ export async function openStudio(user, refresh, navigate, demo = false) {
     }
     if (!up.elements.title.value)
       up.elements.title.value = file.name.replace(/\.[^.]+$/, "").slice(0, 80);
-    const base = t("Original") + " " + used(file.size);
+    const base = t("Original") + " " + fileSize(file.size);
     estimate.textContent = base + " · " + t("Preparando archivo…");
     try {
       const item = await prepare(file, {
@@ -189,15 +181,15 @@ export async function openStudio(user, refresh, navigate, demo = false) {
         " · " +
         t("Se subirán") +
         " " +
-        used(size) +
-        (size >= 1024 ? " (" + size.toLocaleString(language) + " B)" : "") +
+        fileSize(size) +
         " · " +
         t("Quedarán") +
         " " +
-        used(available - size) +
+        fileSize(available - size) +
         (!demo && room.cloud && !usesCloudFile(item)
           ? " · " + t("Espacio para documentos")
           : "");
+      estimate.title = size.toLocaleString(language) + " B";
     } catch (e) {
       if (!controller.signal.aborted) estimate.textContent = failure(e);
     } finally {
@@ -246,11 +238,11 @@ export async function openStudio(user, refresh, navigate, demo = false) {
     $("#storage-usage").textContent =
       t("Usados") +
       " " +
-      used(room.bytes || 0) +
+      fileSize(room.bytes || 0) +
       " · " +
       t("Disponibles ahora") +
       " " +
-      used(room.available || 0);
+      fileSize(room.available || 0);
     $("#work-list").innerHTML = room.works
       .map(
         (w) =>
@@ -378,6 +370,7 @@ export async function openStudio(user, refresh, navigate, demo = false) {
       up.reset();
       prepared = null;
       estimate.textContent = "";
+      estimate.removeAttribute("title");
       $("#compress-option").hidden = true;
       status.textContent = t("Obra subida.");
     } catch (err) {

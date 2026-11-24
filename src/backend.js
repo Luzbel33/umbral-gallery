@@ -1,4 +1,4 @@
-import { t } from "./i18n.js";
+import { t, fileSize } from "./i18n.js";
 import { createClient } from "@supabase/supabase-js";
 import { projectUrl, publicKey } from "./config.js";
 import { summary, objectUrl } from "./public-gallery.js";
@@ -55,6 +55,23 @@ const mediaTypes = {
   "audio/mp4": "m4a",
   "audio/x-m4a": "m4a",
 };
+async function webpWithin(bitmap, longestSide, quality, maxBytes) {
+  let scale = Math.min(1, longestSide / Math.max(bitmap.width, bitmap.height));
+  const canvas = document.createElement("canvas");
+  const context = canvas.getContext("2d");
+  for (;;) {
+    canvas.width = Math.max(1, Math.round(bitmap.width * scale));
+    canvas.height = Math.max(1, Math.round(bitmap.height * scale));
+    context.imageSmoothingQuality = "high";
+    context.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
+    const blob = await new Promise((resolve) => canvas.toBlob(resolve, "image/webp", quality));
+    if (blob?.type !== "image/webp")
+      throw Error(t("Este navegador no pudo convertir la imagen."));
+    if (blob.size <= maxBytes) return blob;
+    // Encoded size roughly follows pixel area. Always resample from the original.
+    scale *= Math.min(0.9, Math.sqrt(maxBytes / blob.size));
+  }
+}
 export async function prepare(
   file,
   { available = 32 * 1024 ** 2, optimize = true, progress, signal } = {},
@@ -75,7 +92,7 @@ export async function prepare(
   const max = av ? 128 : models.includes(ext) ? 12 : 32;
   if (file.size > max * 1024 ** 2)
     throw Error(
-      t("Este original supera el límite de preparación.") + " " + max + " MiB.",
+      t("Este original supera el límite de preparación.") + " " + fileSize(max * 1024 ** 2) + ".",
     );
   if (models.includes(ext)) {
     const { convertMesh } = await import("./mesh.js");
@@ -87,7 +104,7 @@ export async function prepare(
   }
   if (codeExtensions.includes(ext)) {
     if (file.size > 524288)
-      throw Error(t("El máximo para código y texto es de 512 KiB."));
+      throw Error(t("El máximo para código y texto es de 524 kB."));
     const bytes = new Uint8Array(await file.arrayBuffer());
     if (bytes.includes(0)) throw Error(t("Elegí un archivo de texto UTF-8."));
     try {
@@ -156,35 +173,11 @@ export async function prepare(
   ) {
     const bitmap = await createImageBitmap(file);
     try {
-      const s = Math.min(1, 1920 / Math.max(bitmap.width, bitmap.height));
-      const canvas = document.createElement("canvas");
-      canvas.width = Math.max(1, Math.round(bitmap.width * s));
-      canvas.height = Math.max(1, Math.round(bitmap.height * s));
-      canvas
-        .getContext("2d")
-        .drawImage(bitmap, 0, 0, canvas.width, canvas.height);
-      const blob = await new Promise((resolve) =>
-        canvas.toBlob(resolve, "image/webp", 0.86),
-      );
-      if (!blob || blob.type !== "image/webp")
-        throw Error(t("Este navegador no pudo convertir la imagen."));
+      const blob = await webpWithin(bitmap, 1920, 0.86, 2_000_000);
       let preview = null;
       if (blob.size > 24576) {
-        const scale = Math.min(1, 480 / Math.max(bitmap.width, bitmap.height));
-        canvas.width = Math.max(1, Math.round(bitmap.width * scale));
-        canvas.height = Math.max(1, Math.round(bitmap.height * scale));
-        canvas
-          .getContext("2d")
-          .drawImage(bitmap, 0, 0, canvas.width, canvas.height);
-        const small = await new Promise((resolve) =>
-          canvas.toBlob(resolve, "image/webp", 0.66),
-        );
-        if (
-          small?.type === "image/webp" &&
-          small.size < blob.size &&
-          small.size <= 65536
-        )
-          preview = small;
+        const small = await webpWithin(bitmap, 480, 0.66, 65_536);
+        if (small.size < blob.size) preview = small;
       }
       return { blob, preview, extension: "webp", mime: blob.type };
     } finally {

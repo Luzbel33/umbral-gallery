@@ -1,8 +1,8 @@
 // Spanish source messages also identify errors returned by the gallery's existing APIs.
 const english = {
   "Otras redes sociales": "Additional social profiles",
-  "Cada sala tiene 48 MiB propios entre obras y miniaturas. Cada archivo admite hasta 32 MiB. Los PDF usan el espacio para documentos que ves al elegir el archivo.":
-    "Each room has its own 48 MiB for works and previews. Each file can use up to 32 MiB. PDFs use the document storage shown when you select a file.",
+  "Tenés 50,33 MB para hasta cuatro obras, incluidas las miniaturas. Cada foto se ajusta a 2 MB como máximo. Un audio o video puede ocupar hasta 33,55 MB si queda espacio en la sala. Al elegir un PDF vas a ver el espacio disponible para documentos.":
+    "You have 50.33 MB for up to four works, including previews. Each photo is optimized to 2 MB or less. An audio or video file can use up to 33.55 MB if your room has space. Select a PDF to see the available document storage.",
   "Espacio para documentos": "Document storage",
   "El archivo supera el espacio disponible en el almacenamiento de documentos.":
     "This file exceeds the available document storage.",
@@ -11,8 +11,8 @@ const english = {
   "No se completó la transferencia de la obra. Volvé a intentar.":
     "The file transfer did not finish. Please try again.",
   "Cómo se calcula el espacio": "How storage works",
-  "Cada artista tiene 6 MiB reservados. Podés llegar a 48 MiB por sala usando la bolsa compartida de 200 MiB. El máximo por archivo listo es 32 MiB. Los enlaces no gastan espacio de archivos.":
-    "Each artist has 6 MiB reserved. A room can grow to 48 MiB using the shared 200 MiB pool. Each finished upload can be up to 32 MiB. Media links use none of your file storage.",
+  "Tenés 6,29 MB reservados y podés llegar a 50,33 MB usando el espacio compartido. Cada foto se ajusta a 2 MB como máximo. Un archivo puede ocupar hasta 33,55 MB si queda espacio. Los enlaces no gastan espacio de archivos.":
+    "You have 6.29 MB reserved and can use shared storage up to a room total of 50.33 MB. Each photo is optimized to 2 MB or less. A file can use up to 33.55 MB if space is available. Media links use no file storage.",
   "Editar mi sala": "Edit my room",
   "Podés seguir como visitante. Si querés exponer, creá una de las 100 salas del piloto. Podés agregar cuatro obras, con archivos o enlaces.":
     "You can keep visiting. To exhibit, create one of the pilot’s 100 artist rooms. Add four works as uploads or media links.",
@@ -330,8 +330,8 @@ const english = {
     "Images: JPG, PNG, WebP, AVIF, BMP and the first frame of GIFs. Video: MP4, WebM, MOV and OGV. Audio: MP3, Ogg/Opus, WAV, FLAC and M4A. Playback depends on browser codec support.",
   "Modelos GLB, glTF autocontenido, STL, OBJ y PLY ASCII. Se conserva geometría estática y color base compatible, hasta 60.000 triángulos. Los modelos se pueden girar y acercar.":
     "Rotate and zoom GLB, self-contained glTF, STL, OBJ and ASCII PLY models. Static geometry and supported base colors are preserved, up to 60,000 triangles.",
-  "PDF página por página, CSV y TSV como tablas. Código, HTML, SVG, Markdown, JSON, cuadernos Jupyter y otros archivos de texto se leen como texto UTF-8 de hasta 512 KiB. Para una demo interactiva agregá su enlace en Sala.":
-    "Read PDFs page by page and CSV or TSV files as tables. Preview code, HTML, SVG, Markdown, JSON, Jupyter notebooks and other UTF-8 text up to 512 KiB. Add an external link for an interactive demo.",
+  "PDF página por página, CSV y TSV como tablas. Código, HTML, SVG, Markdown, JSON, cuadernos Jupyter y otros archivos de texto se leen como texto UTF-8 de hasta 524 kB. Para una demo interactiva agregá su enlace en Sala.":
+    "Read PDFs page by page and CSV or TSV files as tables. Preview code, HTML, SVG, Markdown, JSON, Jupyter notebooks and other UTF-8 text up to 524 kB. Add an external link for an interactive demo.",
   "Subir obra": "Upload work",
   "Sala y enlaces": "Room and links",
   "Obras y archivos": "Works and files",
@@ -453,8 +453,9 @@ const english = {
   "Mirar sin bordes": "Enable free look",
   "En PC, mové el mouse para mirar y usá WASD para caminar. Podés activar la vista libre para girar sin llegar al borde de la pantalla. Escape libera el cursor. En el celular, usá el joystick izquierdo y mirá arrastrando con el otro pulgar. Tocá una obra para abrirla.":
     "On desktop, move the mouse to look and use WASD to walk. Enable free look to turn beyond the edge of the screen. Escape releases the cursor. On mobile, use the left joystick and drag with your other thumb to look. Select a work to open it.",
-  "El máximo para código y texto es de 512 KiB.":
-    "Code and text files can be up to 512 KiB.",
+  "La imagen preparada debe pesar como máximo 2 MB.": "The prepared image must be 2 MB or smaller.",
+  "El máximo para código y texto es de 524 kB.":
+    "Code and text files can be up to 524 kB.",
   "Elegí un archivo de texto UTF-8.": "Choose a UTF-8 text file.",
   "Guardá el texto en UTF-8.": "Save the file as UTF-8 text.",
   "El archivo no tiene cabecera PDF.":
@@ -531,6 +532,13 @@ function initialLanguage() {
   );
 }
 export const language = initialLanguage();
+export function fileSize(bytes) {
+  if (bytes < 1000) return bytes + " B";
+  const megabytes = bytes >= 1_000_000;
+  const value = bytes / (megabytes ? 1_000_000 : 1000);
+  return value.toLocaleString(language, { maximumFractionDigits: megabytes ? 2 : 1 }) +
+    (megabytes ? " MB" : " kB");
+}
 export const t = (key) =>
   language === "en" && Object.hasOwn(english, key) ? english[key] : key;
 export function switchLanguage() {

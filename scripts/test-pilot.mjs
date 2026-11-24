@@ -22,6 +22,28 @@ begin
   raise exception 'Unexpected extra room';
  exception when raise_exception then if sqlerrm<>'PILOT_ARTISTS_FULL' then raise;end if;end;
  if cardinality(ids)<6 then raise exception 'Use a dedicated empty test database';end if;
+ -- Roll back the boundary fixtures before the shared-pool and capacity tests.
+ begin
+  update gallery_internal.media_rollout set enabled=true;
+  perform set_config('request.jwt.claim.sub',ids[1]::text,true);
+  perform public.reserve_gallery_upload(gen_random_uuid(),'Photo','photo.jpg','webp',2000000,65536);
+  begin
+   perform public.reserve_gallery_upload(gen_random_uuid(),'Photo','photo.jpg','webp',2000001,0);
+   raise exception 'Accepted oversized cloud photo';
+  exception when raise_exception then if sqlerrm<>'PILOT_IMAGE_FULL' then raise;end if;end;
+  insert into storage.objects(bucket_id,name,metadata) values
+   ('gallery-art',ids[1]||'/photo.webp','{"size":2000000}'),
+   ('gallery-art',ids[1]||'/photo.preview.webp','{"size":65536}');
+  begin
+   update storage.objects set metadata='{"size":65537}' where name=ids[1]||'/photo.preview.webp';
+   raise exception 'Accepted oversized preview';
+  exception when raise_exception then if sqlerrm<>'PILOT_IMAGE_FULL' then raise;end if;end;
+  begin
+   insert into storage.objects(bucket_id,name,metadata) values('gallery-art',ids[1]||'/large.webp','{"size":2000001}');
+   raise exception 'Accepted oversized storage photo';
+  exception when raise_exception then if sqlerrm<>'PILOT_IMAGE_FULL' then raise;end if;end;
+  raise exception 'Photo limits passed';
+ exception when raise_exception then if sqlerrm<>'Photo limits passed' then raise;end if;end;
  for i in 1..5 loop
   insert into storage.objects(bucket_id,name,metadata) values('gallery-art',ids[i]||'/one',jsonb_build_object('size',24*mib));
   insert into storage.objects(bucket_id,name,metadata) values('gallery-art',ids[i]||'/two',jsonb_build_object('size',(case when i=5 then 14 else 24 end)*mib));
@@ -63,7 +85,7 @@ execFileSync(
   { input: sql, stdio: ["pipe", "pipe", "inherit"] },
 );
 console.log(
-  "PASS room 101 denied, legacy pool protected and all fixture rooms reserve 48 MiB together on Cloudinary",
+  "PASS photo and preview boundaries, room 101 denied, legacy pool protected and all fixture rooms reserve 48 MiB together on Cloudinary",
 );
 const password = randomBytes(20).toString("hex"),
   email = randomUUID() + "@quota-check.invalid";

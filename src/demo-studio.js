@@ -3,6 +3,8 @@ import { workType } from "./formats.js";
 
 const draft = structuredClone(workshop);
 export function exampleRoom() {
+  const works = [...draft.works].sort((a, b) => a.slot - b.slot);
+  const photo = works.find((w) => w.ready && w.type === "image");
   const track = draft.works.find(
     (w) => w.slot === draft.music_slot && w.type === "audio",
   );
@@ -11,7 +13,9 @@ export function exampleRoom() {
     ...draft,
     bytes: used,
     available: 48 * 1024 ** 2 - used,
-    works: [...draft.works].sort((a, b) => a.slot - b.slot),
+    works,
+    cover: photo?.preview || photo?.url,
+    thumb: photo?.preview || photo?.url,
     music: track?.url,
     recording: track?.id === "track" ? workshop.recording : null,
   };
