@@ -1,5 +1,39 @@
 import { test, expect } from "@playwright/test";
 
+test("visual mounting shares positions, sculpture angles and finishes with the web editor", async ({ page }, info) => {
+  await page.goto("./?sala=taller&modo=3d&lang=es");
+  await page.locator("#edit-installation").click();
+  await expect(page.locator(".visual-tools")).toBeVisible();
+  await expect(page.locator("dialog[open]")).toHaveCount(0);
+  await page.locator("[data-work]").selectOption("fold");
+  await page.locator("[data-place='1']").click();
+  await expect(page.locator("[data-place='1']")).toHaveClass(/current-mount/);
+  await page.locator("[data-angle]").fill("37");
+  await page.locator("[data-wall='2']").click();
+  await page.locator("[data-place='7']").click();
+  await expect(page.locator("[data-place='7']")).toHaveClass(/current-mount/);
+  const zoom = page.locator(".mount-zoom");
+  if (await zoom.getAttribute("aria-pressed") === "false") await zoom.click();
+  await page.screenshot({ path: `.qa/visual-mount-${info.project.name}.png` });
+  await page.locator("[data-mode='room']").click();
+  await page.locator("[data-finish='Madera']").click();
+  await page.locator("[data-paint]").fill("#77845a");
+  await expect(page.locator(".visual-status")).toHaveText("Cambios guardados.");
+  await page.locator(".visual-close").click();
+  await expect(page.locator(".mount-points")).toHaveCount(0);
+  await page.locator("#edit-installation").click();
+  await page.locator(".visual-files").click();
+  await expect(page.locator("#upload-form")).toBeVisible();
+  await page.locator('[data-studio-tab="room"]').click();
+  await expect(page.locator("[name=finish]")).toHaveValue("Madera");
+  await expect(page.locator("[name=wall_color]")).toHaveValue("#77845a");
+  await page.locator("[data-studio-tab='works']").click();
+  await expect(page.locator("[data-edit='study']")).toContainText("Fondo derecho");
+  await expect(page.locator("[data-edit='fold']")).toContainText("Entrada central");
+  await page.locator("[data-edit='fold']").click();
+  await expect(page.locator("[name=orientation]")).toHaveValue("37");
+});
+
 test("removing the last image and recording leaves a sculpture-only room", async ({ page }) => {
   await page.goto("./?sala=taller&lang=es");
   await page.locator("[data-demo]").click();

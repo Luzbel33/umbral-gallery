@@ -1,0 +1,329 @@
+#walk.arranging {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) clamp(270px, 25vw, 350px);
+  background: #20211e;
+}
+.arranging > .walk-top,
+.arranging > .walk-bottom,
+.arranging > .joystick,
+#walk.arranging::before {
+  display: none;
+}
+.arranging #viewport {
+  position: relative;
+  min-width: 0;
+  min-height: 0;
+}
+.visual-overlay,
+.mount-points {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+.visual-overlay button {
+  pointer-events: auto;
+}
+.wall-switch {
+  position: absolute;
+  left: 50%;
+  top: max(16px, env(safe-area-inset-top));
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  padding: 3px;
+  border-radius: 28px;
+  color: #fff;
+  background: #20221ef0;
+  z-index: 1;
+  box-shadow: 0 2px 12px #0003;
+}
+.wall-switch button,
+.visual-tabs button,
+.finish-options button {
+  background: transparent;
+  border: 0;
+  color: inherit;
+}
+.wall-switch button {
+  padding: 0 14px;
+  min-height: 38px;
+  border-radius: 24px;
+  font-size: 13px;
+}
+.wall-switch button[aria-pressed="true"] {
+  background: #e9e7da;
+  color: #22261d;
+}
+.mount-zoom {
+  position: absolute;
+  top: max(16px, env(safe-area-inset-top));
+  right: 12px;
+  height: 44px;
+  width: 44px;
+  border: 1px solid #ffffff52;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: #20221ef0;
+  color: white;
+}
+.mount-zoom[aria-pressed="true"] {
+  color: var(--lime);
+}
+.mount-points button {
+  transition: background-color .18s, color .18s, border-color .18s;
+  position: absolute;
+  transform: translate(-50%, -50%);
+  display: flex;
+  gap: 5px;
+  align-items: center;
+  justify-content: center;
+  min-width: 44px;
+  min-height: 44px;
+  padding: 0 10px;
+  border: 1px solid #ffffff73;
+  border-radius: 24px;
+  color: #fff;
+  background: #242720f0;
+  box-shadow: 0 3px 10px #0003;
+  font-size: 12px;
+}
+.mount-points button.current-mount {
+  cursor: default;
+  background: var(--lime);
+  color: #28301c;
+  opacity: 1;
+}
+.mount-points small {
+  display: none;
+}
+.dock-points .mount-points {
+  inset: auto 8px 14px;
+  display: flex;
+  justify-content: center;
+  gap: 5px;
+}
+.dock-points .mount-points button {
+  position: static;
+  transform: none;
+  white-space: nowrap;
+}
+.dock-points .mount-points small {
+  display: inline;
+  font-size: 10px;
+  opacity: 0.75;
+}
+.mount-points button:enabled:hover,
+.visual-files:hover {
+  border-color: var(--lime);
+}
+.visual-tools {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 26px 22px;
+  border-left: 1px solid #4f504a;
+  color: #efeee6;
+  background: #20221f;
+  z-index: 2;
+}
+.visual-tools header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+}
+.visual-tools h1 {
+  font: 400 clamp(32px, 3vw, 48px) / 1 var(--display);
+  margin: 0;
+}
+.visual-tools header p {
+  margin: 6px 0 0;
+  color: #c7c8b9;
+  font-size: 13px;
+  overflow-wrap: anywhere;
+}
+.visual-close {
+  padding: 0 11px;
+  height: 44px;
+  flex: none;
+  background: transparent;
+  border: 1px solid #626457;
+  color: inherit;
+  border-radius: 24px;
+}
+.visual-close,
+.visual-files,
+.visual-tabs button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+}
+.visual-tabs {
+  display: flex;
+  gap: 16px;
+  margin: 23px 0 16px;
+  border-bottom: 1px solid #56594d;
+}
+.visual-tabs button {
+  min-height: 44px;
+  padding: 0 2px;
+  border-bottom: 2px solid transparent;
+}
+.visual-tabs button[aria-pressed="true"] {
+  color: var(--lime);
+  border-color: currentColor;
+}
+.visual-tools label,
+.visual-tools legend {
+  display: block;
+  color: #e1e1d7;
+  font-size: 13px;
+  font-weight: 600;
+}
+.visual-tools select {
+  display: block;
+  width: 100%;
+  min-height: 44px;
+  margin-top: 6px;
+  padding: 8px;
+  background: #30332c;
+  color: #fff;
+  border: 1px solid #717567;
+  border-radius: 6px;
+}
+.tool-hint,
+.visual-tools [data-works] p {
+  margin: 12px 0 16px;
+  font-size: 14px;
+  line-height: 1.45;
+  color: #c5c8bb;
+}
+.visual-tools output {
+  float: right;
+  font-variant-numeric: tabular-nums;
+  color: var(--lime);
+}
+.visual-tools input[type="range"] {
+  width: 100%;
+  min-height: 38px;
+  margin: 0;
+  accent-color: var(--lime);
+}
+.visual-tools .wall-paint {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.wall-paint input {
+  width: 62px;
+  height: 44px;
+  cursor: pointer;
+  padding: 3px;
+  border-radius: 6px;
+  border: 1px solid #717567;
+  background: #30332c;
+}
+.visual-tools fieldset {
+  margin: 14px 0 0;
+  padding: 0;
+  border: 0;
+}
+.finish-options {
+  display: flex;
+  gap: 6px;
+  margin-top: 7px;
+}
+.finish-options button {
+  flex: 1;
+  border: 1px solid #636658;
+  border-radius: 6px;
+  padding: 7px 3px;
+  min-height: 50px;
+  font-size: 12px;
+}
+.finish-options button[aria-pressed="true"] {
+  border-color: var(--lime);
+  color: var(--lime);
+}
+.finish-options i {
+  display: block;
+  height: 8px;
+  border-radius: 2px;
+  margin: 0 4px 5px;
+  background: #9a9286;
+}
+.finish-options [data-finish="Madera"] i {
+  background: #ac8465;
+}
+.finish-options [data-finish="Basalto"] i {
+  background: #535655;
+}
+.visual-status {
+  min-height: 1.3em;
+  font-size: 13px;
+  color: var(--lime);
+  margin: 12px 0;
+  overflow-wrap: anywhere;
+}
+.visual-files {
+  margin-top: auto;
+  border: 1px solid #767c68;
+  border-radius: 24px;
+  min-height: 44px;
+  padding: 8px 16px;
+  background: transparent;
+  color: #efeee6;
+}
+@media (max-width: 720px) and (orientation: portrait) {
+  #walk.arranging {
+    grid-template-columns: 1fr;
+    grid-template-rows: minmax(0, 1fr) auto;
+  }
+  .visual-tools {
+    padding: 12px 16px max(12px, env(safe-area-inset-bottom));
+    border-left: 0;
+    border-top: 1px solid #5f6157;
+    max-height: 49dvh;
+  }
+  .visual-tools h1 {
+    font-size: 30px;
+  }
+  .visual-tools header p {
+    display: none;
+  }
+  .visual-tools header {
+    align-items: center;
+  }
+  .visual-tabs {
+    margin: 0 0 10px;
+  }
+  .visual-status {
+    margin: 5px 0 0;
+  }
+  .visual-files { align-self: flex-start; border: 0; padding: 0; }
+  .mount-points button {
+    padding: 0 7px;
+    font-size: 11px;
+  }
+  .wall-switch button {
+    min-height: 44px;
+  }
+}
+@media (max-height: 500px) and (orientation: landscape) {
+  #walk.arranging {
+    grid-template-columns: minmax(0, 1fr) 240px;
+  }
+  .visual-tools {
+    padding: 10px 14px;
+  }
+  .visual-tools h1 {
+    font-size: 29px;
+  }
+  .visual-tabs {
+    margin: 5px 0;
+  }
+}

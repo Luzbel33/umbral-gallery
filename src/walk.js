@@ -10,7 +10,7 @@ import { courtyard } from "./courtyard.js";
 import { icon } from "./icons.js";
 import { $, esc, dialog, panel, toast, failure } from "./ui.js";
 import "./walk.css";
-export function enterWalk(room, { exit, openPiece, login, editRoom }) {
+export function enterWalk(room, { exit, openPiece, login, canEdit, openFiles }) {
   const main = $("#main");
   const economical =
     (navigator.deviceMemory || 8) <= 4 ||
@@ -24,12 +24,9 @@ export function enterWalk(room, { exit, openPiece, login, editRoom }) {
   main.innerHTML = `<section id="walk" aria-label="${t("Recorrido 3D de")} ${esc(room.title)}"><div id="viewport" tabindex="0" aria-label="${t("WASD o flechas")}"></div>
     <div class="walk-top"><button id="leave" class="hud-btn">${icon("back")} <span>${t("Modo web")}</span></button><div class="walk-title">${esc(room.title)}<small>${esc(room.artist)}</small></div><button class="hud-btn" id="artist-card">${icon(room.id === "patio" ? "headphones" : "user")} <span>${t(room.id === "patio" ? "Música y créditos" : "Artista y redes")}</span></button><button class="hud-btn" id="visits" aria-pressed="false">${icon("users")} <span>${t("Caminar en compañía")}</span></button>
     ${room.music ? `<button class="hud-btn" id="sound" aria-label="${t("Activar música")}" aria-pressed="false">${icon("mute")} <span>${t("Música")}</span></button>` : ""}<button class="hud-btn" id="help" aria-label="${t("Controles de movimiento")}">${icon("help")}</button></div>
-    <div class="walk-bottom">${editRoom ? `<button class="hud-btn" id="edit-installation">${icon("palette", 16)} ${t(room.demo ? "Probar el editor" : "Editar mi sala")}</button>` : ""}<div class="walk-hint">${icon("move", 15)} ${t("WASD o flechas")} <b>·</b> ${t("Mové el mouse para mirar")}</div><button id="free-look" class="hud-btn">${icon("scan")} ${t("Mirar sin bordes")}</button><button id="inspect" class="primary" hidden>${icon("eye")} ${t("Ver obra")}</button></div>
+    <div class="walk-bottom">${canEdit ? `<button class="hud-btn" id="edit-installation">${icon("palette", 16)} ${t("Editar en 3D")}</button>` : ""}<div class="walk-hint">${icon("move", 15)} ${t("WASD o flechas")} <b>·</b> ${t("Mové el mouse para mirar")}</div><button id="free-look" class="hud-btn">${icon("scan")} ${t("Mirar sin bordes")}</button><button id="inspect" class="primary" hidden>${icon("eye")} ${t("Ver obra")}</button></div>
     <div class="joystick" role="group" aria-label="${t("Joystick de movimiento")}"><span></span></div>
     </section>`;
-  if (editRoom)
-    $("#edit-installation").onclick = () =>
-      Promise.resolve(editRoom()).catch((e) => toast(failure(e)));
   const state = new AbortController(),
     listen = (el, type, fn, opts = {}) =>
       el.addEventListener(type, fn, { ...opts, signal: state.signal });
@@ -58,7 +55,7 @@ export function enterWalk(room, { exit, openPiece, login, editRoom }) {
   const scene = new T.Scene();
   scene.background = new T.Color(0xd9d1c0);
   scene.fog = new T.FogExp2(0xd9d1c0, 0.024);
-  let live = true,
+  let live = true, editor = null,
     social = null,
     socialPending = false,
     music = null,
@@ -187,6 +184,7 @@ export function enterWalk(room, { exit, openPiece, login, editRoom }) {
     renderer.setSize(view.clientWidth, view.clientHeight, false);
     camera.aspect = view.clientWidth / Math.max(view.clientHeight, 1);
     camera.updateProjectionMatrix();
+    editor?.fit();
     invalidate();
   };
   const observer = new ResizeObserver(resize);
@@ -214,13 +212,16 @@ export function enterWalk(room, { exit, openPiece, login, editRoom }) {
       (-(event.clientY - rect.top) / rect.height) * 2 + 1,
     );
     if (document.pointerLockElement === view) point.set(0, 0);
-    ray.setFromCamera(point, camera);
+    ray.setFromCamera(point, editor?.camera || camera);
     const hit = ray.intersectObjects(world.targets.map((t) => t.frame))[0];
     const target = world.targets.find((t) => t.frame === hit?.object);
-    if (target) present(target.work);
+    if (target) {
+      if (editor) editor.select(target.work);
+      else present(target.work);
+    }
   }
   listen(view, "pointerdown", (e) => {
-    if (e.button !== 0 || drag) return;
+    if (e.button !== 0 || drag || e.target.closest("button")) return;
     if (e.pointerType !== "mouse") view.setPointerCapture(e.pointerId);
     view.focus();
     drag = { id: e.pointerId, x: e.clientX, y: e.clientY, dist: 0 };
@@ -244,7 +245,7 @@ export function enterWalk(room, { exit, openPiece, login, editRoom }) {
   listen(view, "pointermove", (e) => {
     if (dialog.open || document.pointerLockElement === view) return;
     if (e.pointerType === "mouse") {
-      if (hover) look(e.clientX - hover.x, e.clientY - hover.y);
+      if (hover && !editor) look(e.clientX - hover.x, e.clientY - hover.y);
       hover = { x: e.clientX, y: e.clientY };
     }
     if (drag?.id === e.pointerId) {
@@ -254,11 +255,11 @@ export function enterWalk(room, { exit, openPiece, login, editRoom }) {
       drag.x = e.clientX;
       drag.y = e.clientY;
       drag.mouse = e.pointerType === "mouse";
-      if (!drag.mouse) look(dx, dy);
+      if (!drag.mouse && !editor) look(dx, dy);
     }
   });
   listen(document, "mousemove", (e) => {
-    if (!dialog.open && document.pointerLockElement === view)
+    if (!editor && !dialog.open && document.pointerLockElement === view)
       look(e.movementX, e.movementY);
   });
   const lock = $("#free-look");
@@ -292,6 +293,10 @@ export function enterWalk(room, { exit, openPiece, login, editRoom }) {
   ];
   listen(window, "keydown", (e) => {
     if (dialog.open) return;
+    if (editor) {
+      if (e.code === "Escape" && !editor.busy && !e.target.matches("select,input")) closeEditor();
+      return;
+    }
     if (movement.includes(e.code)) {
       e.preventDefault();
       keys.add(e.code);
@@ -301,6 +306,33 @@ export function enterWalk(room, { exit, openPiece, login, editRoom }) {
   listen(window, "keyup", (e) => keys.delete(e.code));
   listen(window, "blur", () => keys.clear());
   const joystick = bindJoystick($(".joystick"), listen);
+  const editButton = $("#edit-installation");
+  function closeEditor() {
+    editor?.dispose();
+    editor = null;
+    if (!canMove(camera.position.x, camera.position.z))
+      camera.position.set(-1.55 * roomScale, 1.67, 1.95 * roomScale);
+    hover = null;
+    editButton.focus();
+    invalidate();
+  }
+  if (editButton) editButton.onclick = async () => {
+    editButton.disabled = true;
+    try {
+      if (document.pointerLockElement === view) document.exitPointerLock();
+      const { editInstallation } = await import("./visual-studio.js");
+      if (!live) return;
+      keys.clear();
+      joystick.reset();
+      drag = hover = null;
+      editor = editInstallation({ root: $("#walk"), view, room, world, invalidate, close: closeEditor, openFiles });
+      resize();
+    } catch (e) {
+      toast(failure(e));
+    } finally {
+      editButton.disabled = false;
+    }
+  };
   $("#inspect").onclick = () => inspect("nearest");
   $("#leave").onclick = exit;
   $("#help").onclick = () =>
@@ -409,7 +441,8 @@ export function enterWalk(room, { exit, openPiece, login, editRoom }) {
         z = p.z + (-f * Math.cos(a) - s * Math.sin(a)) * speed;
       if (canMove(x, p.z)) p.x = x;
       if (canMove(p.x, z)) p.z = z;
-      world.approach?.(p, camera);
+      const renderCamera = editor?.camera || camera;
+      world.approach?.(renderCamera.position, renderCamera);
       near = null;
       let distance = 3.8 * 3.8;
       for (const target of world.targets) {
@@ -462,7 +495,7 @@ export function enterWalk(room, { exit, openPiece, login, editRoom }) {
         }
         previousRender = moving ? time : 0;
         if (atmosphereMoved) world.waterTime?.(time);
-        renderer.render(scene, camera);
+        renderer.render(scene, renderCamera);
         drawnPosition.copy(camera.position);
         drawnRotation.copy(camera.quaternion);
         dirty = false;
@@ -490,6 +523,7 @@ export function enterWalk(room, { exit, openPiece, login, editRoom }) {
   frame = requestAnimationFrame(draw);
   return () => {
     live = false;
+    editor?.dispose();
     if (document.pointerLockElement === view) document.exitPointerLock();
     state.abort();
     observer.disconnect();

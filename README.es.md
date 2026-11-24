@@ -14,7 +14,7 @@ Probá la [sala de ejemplo editable](https://luzbel33.github.io/umbral-gallery/?
 
 En **Registrarme**, elegí usuario y contraseña y guardá el código de recuperación. En **Ingresar** también podés usar el acceso anterior de tu dispositivo. Con tu cuenta podés guardar favoritos y chatear sin crear una sala.
 
-En **Mi espacio → Crear mi sala** elegí tamaño, color, piso, estilo de cartela y música. Completá tu biografía, web, hasta tres redes sociales y enlace de proyecto. En **Obras y archivos**, elegí una obra, editá título, técnica, año y texto, y tocá una de las ocho posiciones del plano. Podés elegir el ángulo inicial de una escultura. Recorré tu instalación antes de activar **Mostrar mi sala en el catálogo público**. Los archivos subidos se pueden abrir por enlace directo incluso en borrador. Podés liberar el cupo eliminando una sala vacía.
+En **Mi espacio → Crear mi sala** elegí tamaño, color, piso, estilo de cartela y música. Completá tu biografía, web, hasta tres redes sociales y enlace de proyecto. En **Obras y archivos**, elegí una obra, editá título, técnica, año y texto, y tocá una de las ocho posiciones del plano. Podés elegir el ángulo inicial de una escultura. Cada obra nueva ocupa el primer lugar libre automáticamente. Podés activar **Mostrar mi sala en el catálogo público** desde la web. Si querés ajustar el montaje a la vista, entrá al recorrido y elegí **Editar en 3D** para ubicar o intercambiar obras, girar esculturas y cambiar el color de paredes y el piso. Los archivos subidos se pueden abrir por enlace directo incluso en borrador. Podés liberar el cupo eliminando una sala vacía.
 
 ### Archivos que se pueden exponer
 

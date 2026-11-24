@@ -77,7 +77,7 @@ const href = (id, walking = false) =>
       (walking ? "&modo=3d" : "");
 function navigate(url) {
   history.pushState({}, "", url);
-  void route();
+  return route();
 }
 let favoriteOwner = null,
   favoriteRequest = Promise.resolve(true);
@@ -349,15 +349,13 @@ async function route() {
         walk = enterWalk(r, {
           exit: () => navigate(href(id)),
           openPiece,
-          editRoom:
-            r.demo || r.id === user?.id
-              ? () =>
-                  r.demo
-                    ? import("./studio.js").then((m) =>
-                        m.openStudio(null, route, navigate, true),
-                      )
-                    : showStudio()
-              : null,
+          canEdit: r.demo || r.id === user?.id,
+          openFiles: async () => {
+            await navigate(href(id));
+            const { openStudio } = await import("./studio.js");
+            if (current?.id === id && (r.demo || user?.id === id))
+              await openStudio(user, route, navigate, r.demo, "works");
+          },
           login: () => auth("login"),
         });
       } else if (id === "patio")

@@ -398,6 +398,30 @@ try {
   await phone.locator("#viewport canvas").waitFor();
   await phone.screenshot({ path: ".qa/patio-3d-mobile.png" });
   await p.goto(site + "?sala=" + id + "&modo=3d");
+  await p.locator("#edit-installation").click();
+  await p.locator("[data-work]").selectOption({ label: "pieza" });
+  await p.locator("[data-wall='0']").click();
+  await p.locator("[data-place='1']").click();
+  await expect(p.locator("[data-place='1']")).toHaveClass(/current-mount/);
+  await p.locator("[data-angle]").fill("142");
+  const moveRequest = "**/rest/v1/rpc/place_gallery_work";
+  await p.route(moveRequest, (route) => route.fulfill({
+    status: 409, contentType: "application/json", body: JSON.stringify({message:"Prueba de guardado interrumpido"}),
+  }));
+  await p.locator("[data-place='2']").click();
+  await expect(p.locator(".visual-status")).toHaveText("Prueba de guardado interrumpido");
+  await expect(p.locator("[data-place='1']")).toHaveClass(/current-mount/);
+  await p.unroute(moveRequest);
+  await p.locator("[data-mode='room']").click();
+  await p.locator("[data-finish='Madera']").click();
+  await expect(p.locator("[data-finish='Madera']")).toHaveAttribute("aria-pressed","true");
+  const sculpture = await db.from("works").select("slot,orientation").eq("room_id",id).eq("title","pieza").single();
+  expect(sculpture.data).toEqual({ slot: 1, orientation: 142 });
+  await phone.goto(site + "?sala=" + id + "&modo=3d");
+  await phone.locator("#viewport canvas").waitFor();
+  await expect(phone.locator("#edit-installation")).toHaveCount(0);
+  await p.locator(".visual-close").click();
+  console.log("PASS owner's 3D edits persist on the server and the visitor has no editing controls");
   await p.locator("#sound").click();
   await expect(p.locator("#sound")).toHaveAttribute("aria-pressed", "true");
   await p.goto(site);

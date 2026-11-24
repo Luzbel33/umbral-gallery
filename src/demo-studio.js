@@ -13,7 +13,7 @@ export function exampleRoom() {
     ...draft,
     bytes: used,
     available: 48 * 1024 ** 2 - used,
-    works,
+    works: works.map((w) => ({ ...w })),
     cover: photo?.preview || photo?.url,
     thumb: photo?.preview || photo?.url,
     music: track?.url,

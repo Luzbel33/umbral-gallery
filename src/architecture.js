@@ -1,7 +1,7 @@
 import * as T from "three";
 import { RoomEnvironment } from "three/examples/jsm/environments/RoomEnvironment.js";
 import { art } from "./catalog.js";
-import { wallLabel, mediaCover } from "./wall-label.js";
+import { wallLabel, labelTexture, mediaCover } from "./wall-label.js";
 import { sizes, positions } from "./installation.js";
 import { readBounded } from "./formats.js";
 
@@ -79,14 +79,10 @@ export function furnish(scene, renderer, r, isLive, invalidate) {
   generator.dispose();
   const material = (color, roughness = 0.78, metalness = 0) =>
     new T.MeshStandardMaterial({ color, roughness, metalness });
-  const wood = r.finish === "Madera",
-    floor = material(
-      wood ? 0x856246 : r.finish === "Basalto" ? 0x3e4143 : 0x837c70,
-      0.52,
-      0.09,
-    );
-  const tiles = surfaceTexture(wood);
-  floor.map = tiles;
+  const floorColors = { Madera: 0x856246, Basalto: 0x3e4143, Piedra: 0x837c70 };
+  const floor = material(floorColors[r.finish] ?? floorColors.Piedra, 0.52, 0.09);
+  let woodFloor = r.finish === "Madera";
+  floor.map = surfaceTexture(woodFloor);
   const wall = material(r.wall_color),
     slats = material(0x65503e, 0.62),
     dark = material(0x282927, 0.52, 0.15),
@@ -228,6 +224,7 @@ export function furnish(scene, renderer, r, isLive, invalidate) {
   blocks.push([3.3, 4.95, -0.45, 4].map((v) => v * roomScale));
   building = false;
   const works = r.works.filter((w) => w.ready !== false).slice(0, 8);
+  let bright = wall.color.getHSL({}).l > 0.3;
   const targets = [],
     models = [],
     images = [],
@@ -240,7 +237,6 @@ export function furnish(scene, renderer, r, isLive, invalidate) {
     scene.add(group);
     group.position.set(x * roomScale, 2.2, z * roomScale);
     group.rotation.y = yaw;
-    const bright = new T.Color(r.wall_color).getHSL({}).l > 0.3;
     const plate = wallLabel(w, r.label_style, bright);
     if (plate) {
       plate.position.set(0.98, -1.34, 0.09);
@@ -248,7 +244,7 @@ export function furnish(scene, renderer, r, isLive, invalidate) {
     }
     if (w.type === "model") {
       group.visible = false;
-      const target = { group, frame: group, work: w };
+      const target = { group, frame: group, work: w, plate, angle: w.orientation || 0 };
       targets.push(target);
       models.push({ group, target, work: w, started: false });
       return;
@@ -308,13 +304,58 @@ export function furnish(scene, renderer, r, isLive, invalidate) {
       group.add(shelf);
       if (plate) plate.position.y = -face.scale.y / 2 - 0.31;
     }
-    targets.push({ group, frame: rim || face, work: w });
+    targets.push({ group, frame: rim || face, work: w, plate });
   });
   let activeImages = 0,
     modelLoading = false;
+  function updateFootprint(target) {
+    const center = target.group.localToWorld(new T.Vector3(0, 0, 1.12));
+    target.bounds.splice(0, 4, center.x - 1.12, center.x + 1.12, center.z - 1.12, center.z + 1.12);
+  }
   return {
     blocks,
     targets,
+    moveMount(id, slot) {
+      const target = targets.find((item) => item.work.id === id);
+      if (!target) return;
+      const [x, z, yaw] = positions[slot - 1];
+      target.group.position.set(x * roomScale, 2.2, z * roomScale);
+      target.group.rotation.y = yaw;
+      if (target.bounds) updateFootprint(target);
+      renderer.shadowMap.needsUpdate = true;
+      invalidate();
+    },
+    turnMount(id, angle) {
+      const target = targets.find((item) => item.work.id === id);
+      if (!target || target.work.type !== "model") return;
+      target.angle = angle;
+      if (target.frame !== target.group) target.frame.rotation.y = T.MathUtils.degToRad(angle);
+      renderer.shadowMap.needsUpdate = true;
+      invalidate();
+    },
+    setWallColor(color) {
+      wall.color.set(color);
+      const next = wall.color.getHSL({}).l > 0.3;
+      if (next !== bright && r.label_style !== "paper") {
+        for (const { plate, work } of targets) {
+          if (!plate) continue;
+          plate.material.map.dispose();
+          plate.material.map = labelTexture(work, r.label_style, next);
+        }
+      }
+      bright = next;
+      invalidate();
+    },
+    setFinish(finish) {
+      floor.color.set(floorColors[finish]);
+      const wood = finish === "Madera";
+      if (wood !== woodFloor) {
+        floor.map.dispose();
+        floor.map = surfaceTexture(wood);
+        woodFloor = wood;
+      }
+      invalidate();
+    },
     scale: roomScale,
     portal: new T.Vector3(5.55 * roomScale, 1.4, -8.35 * roomScale),
     approach(position, camera) {
@@ -368,7 +409,7 @@ export function furnish(scene, renderer, r, isLive, invalidate) {
               item.castShadow = item.receiveShadow = true;
               renderer.shadowMap.needsUpdate = true;
               item.scale.setScalar(0.82);
-              item.rotation.y = T.MathUtils.degToRad(m.work.orientation || 0);
+              item.rotation.y = T.MathUtils.degToRad(m.target.angle);
               item.geometry.computeBoundingBox();
               item.position.set(
                 0,
@@ -378,12 +419,14 @@ export function furnish(scene, renderer, r, isLive, invalidate) {
                 1.12,
               );
               m.group.add(item);
-              const center = m.group.localToWorld(new T.Vector3(0, 0, 1.12));
-              box(center.x, 0.54, center.z, 1.84, 1.08, 1.84, stone);
-              blocks.push([
-                center.x - 1.12, center.x + 1.12,
-                center.z - 1.12, center.z + 1.12,
-              ]);
+              const plinth = new T.Mesh(unit, stone);
+              plinth.scale.set(1.84, 1.08, 1.84);
+              plinth.position.set(0, 0.54 - m.group.position.y, 1.12);
+              plinth.castShadow = plinth.receiveShadow = true;
+              m.group.add(plinth);
+              m.target.bounds = [];
+              updateFootprint(m.target);
+              blocks.push(m.target.bounds);
               m.target.frame = item;
               m.group.visible = true;
               invalidate();
@@ -397,7 +440,6 @@ export function furnish(scene, renderer, r, isLive, invalidate) {
     dispose: () => {
       loading.abort();
       target.dispose();
-      tiles.dispose();
       const geo = new Set(),
         mats = new Set(),
         textures = new Set();

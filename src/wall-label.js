@@ -14,8 +14,7 @@ function lines(ctx, text, width, limit) {
   if(result.length>limit) result[limit-1]+="…";
   return result.slice(0,limit);
 }
-export function wallLabel(work, style, bright, width=1.2) {
-  if(style==="hidden") return null;
+export function labelTexture(work, style, bright) {
   const c=document.createElement("canvas"); c.width=896;c.height=216;
   const g=c.getContext("2d"), paper=style==="paper";
   if(paper){g.fillStyle="#e9e0c9";g.fillRect(0,0,c.width,c.height);}
@@ -27,7 +26,12 @@ export function wallLabel(work, style, bright, width=1.2) {
   g.font='27px "Space Grotesk Variable", sans-serif';
   g.fillText(workLine(work),pad,86+title.length*41,820);
   const map=new T.CanvasTexture(c);map.colorSpace=T.SRGBColorSpace;
-  return new T.Mesh(new T.PlaneGeometry(width,width*c.height/c.width),
+  return map;
+}
+export function wallLabel(work, style, bright, width=1.2) {
+  if(style==="hidden") return null;
+  const paper=style==="paper", map=labelTexture(work,style,bright);
+  return new T.Mesh(new T.PlaneGeometry(width,width*map.image.height/map.image.width),
     new T.MeshBasicMaterial({map,transparent:!paper,depthWrite:paper,toneMapped:false}));
 }
 export function mediaCover(w) {

@@ -277,6 +277,13 @@ export async function saveWork(id, slot, w) {
     }),
   );
 }
+export async function moveWork(id, slot) {
+  unwrap(await client.rpc("place_gallery_work", { work_key: id, destination: slot }));
+}
+export async function turnWork(roomId, id, orientation) {
+  unwrap(await client.from("works").update({ orientation })
+    .eq("room_id", roomId).eq("id", id).eq("ready", true).select("id").single());
+}
 export async function studioRoom(id) {
   const [room, usage] = await Promise.all([
     readRoom(id),

@@ -1,5 +1,21 @@
 // Spanish source messages also identify errors returned by the gallery's existing APIs.
 const english = {
+  "Recorrer": "Walk",
+  "Ver toda la pared": "See the whole wall",
+  "Ver de cerca": "Look closer",
+  "Editar en 3D": "Edit in 3D",
+  "Volver al recorrido": "Back to the tour",
+  "Ambiente": "Room finishes",
+  "Fondo": "Back wall",
+  "Lateral": "Side wall",
+  "Entrada": "Entrance",
+  "Pared a la vista": "Wall in view",
+  "Obra seleccionada": "Selected work",
+  "Tocá un punto para mover la obra. Si está ocupado, las dos obras intercambian lugar.": "Choose a spot to move the work. If it’s occupied, the two works swap places.",
+  "Subí tu primera obra desde Obras y archivos. Aparecerá acá automáticamente.": "Upload your first work under Works and files. It will appear here automatically.",
+  "Ubicación actual": "Current spot",
+  "Mover aquí": "Move here",
+  "Intercambiar": "Swap",
   "Otras redes sociales": "Additional social profiles",
   "Tenés 50,33 MB para hasta cuatro obras, incluidas las miniaturas. Cada foto se ajusta a 2 MB como máximo. Un audio o video puede ocupar hasta 33,55 MB si queda espacio en la sala. Al elegir un PDF vas a ver el espacio disponible para documentos.":
     "You have 50.33 MB for up to four works, including previews. Each photo is optimized to 2 MB or less. An audio or video file can use up to 33.55 MB if your room has space. Select a PDF to see the available document storage.",
@@ -158,8 +174,8 @@ const english = {
   "Para elegir una canción, primero subila en Obras y archivos. El visitante decide cuándo escucharla.":
     "First upload a song under Works and files. Visitors choose when to listen.",
   "Guardar y recorrer en 3D": "Save and walk in 3D",
-  "Elegí una obra para editar su título, su cartela y su lugar en la sala.":
-    "Select a work to edit its title, wall label and position.",
+  "Cada obra ocupa un lugar libre automáticamente. Podés cambiarlo acá o en Editar en 3D.":
+    "Each work takes an open spot automatically. You can change it here or under Edit in 3D.",
   "Los archivos del ejemplo se quedan en esta pestaña.":
     "Files added to the example stay in this tab.",
   "Los archivos que subís se pueden abrir por enlace directo, incluso en borrador. Subí material propio o con permiso.":

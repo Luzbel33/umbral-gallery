@@ -16,7 +16,7 @@ Try the [editable example](https://luzbel33.github.io/umbral-gallery/?sala=talle
 
 Choose **Sign up**, enter a username and password, and save the recovery code. Earlier device-based accounts can still sign in with their existing passkey. Each account can keep favorites and chat without opening a room.
 
-Under **My space → Create my room**, set the dimensions, floor finish, wall color, label style and soundtrack. Add your bio, website, up to three social profiles and a project link. In **Works and files**, select a work, edit its title, medium, year and note, then choose one of eight mounting positions on the floor plan. Sculptures have a saved starting angle. Preview the installation before selecting the public catalogue option. Uploaded files can be accessed by direct URL even while the room is a draft. An empty room can be released back to the pilot.
+Under **My space → Create my room**, set the dimensions, floor finish, wall color, label style and soundtrack. Add your bio, website, up to three social profiles and a project link. In **Works and files**, select a work, edit its title, medium, year and note, then choose one of eight mounting positions on the floor plan. Sculptures have a saved starting angle. Each upload takes the first free mounting position automatically. You can publish directly from the web editor. For a visual installation, enter the walkthrough and choose **Edit in 3D** to move or swap works, rotate sculptures and adjust wall color and floor finish. Uploaded files can be accessed by direct URL even while the room is a draft. An empty room can be released back to the pilot.
 
 | Media | Browser experience |
 | --- | --- |
